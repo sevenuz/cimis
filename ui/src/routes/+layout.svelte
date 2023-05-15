@@ -39,23 +39,17 @@
 	<Cookie />
 </article>
 
-<footer class="bg-brownLight">
-	<div class="grid grid-cols-2 content text-white">
-		<div>
-			<a
-				class="hover:text-black"
-				href={"mailto:" + l($lang, $iso, "ui_contact_email_address")}
-			>
-				{l($lang, $iso, "ui_contact_email_address")}
+<footer>
+	<div class="text-center content">
+		<a class="text-white" href={"mailto:" + l($lang, $iso, "ui_contact_email_address")}>
+			{l($lang, $iso, "ui_contact_email_address")}
+		</a>
+		{#each $footerPages as page}
+			|
+			<a class="text-white" href={"/" + page.path}>
+				{l($lang, $iso, page.title)}
 			</a>
-		</div>
-		<div class="place-self-end flex justify-center flex-col">
-			{#each $footerPages as page}
-				<a class="hover:text-black" href={"/" + page.path}>
-					{l($lang, $iso, page.title)}
-				</a>
-			{/each}
-		</div>
+		{/each}
 	</div>
 </footer>
 
