@@ -1,14 +1,10 @@
-# easyCase
+# cimis
 
-This project tries to ease the data gathering for accidents.
-It consists of a backend based on PocketBase which administrates a SQlite instance, an admin dashboard, a REST Api and the data schema.
+It is a very small CMS based on pocketbase.io and svelte. It can depic html and genericly
+websites.
 
-As Frontend technology the svelte framework is used to build a spa website.
-
-The product is built for multiple chancelleries. That is why the base route for a chancellery is its username (/~chancelleryUsername)
-There a new survey customer request can be started which creates a new entry in the backend and leads you to the data survey form.
-On the bottom of the chancellery site is the login for the chancellery dashboard.
-After login, it leads to the dashboard, which shows all related customer requests and its data.
+For the hayrave.de there is a title page with particlejs and a coming feature will be the
+management and booking for a bar.
 
 # Developement
 
@@ -32,9 +28,9 @@ Install frontend Requirements in ui/ with:
 After the first startup of the server, you have to create a User in the admin dashboard to try all features.
 
 ## dev
-`npm run dev` in ui/ to start hot reload frontend server
+`make dev` in ui/ to start hot reload frontend server
 
-`go run main.go serve` to start the PocketBase server where `serve` is the PocketBase command
+`make run` to start the PocketBase server where `serve` is the PocketBase command
 To compile the server, you have to build the ui with `npm run build`
 
 ## update pocketbase to newest version
