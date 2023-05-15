@@ -20,7 +20,7 @@
 			<div class="flex-1 p-2">
 				<a href="/">
 					<img
-						class="w-16 h-16"
+						class="w-20 h-20"
 						style="filter: invert(1);"
 						src={logo}
 						alt={l($lang, $iso, "ui_logo_alt")}

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import icon from "$lib/assets/icon.png";
 	import telegram_logo from "$lib/assets/telegram-logo.svg";
+	import instagram from "$lib/assets/instagram.svg";
+	import facebook from "$lib/assets/facebook.svg";
 	import arrow_down from "$lib/assets/arrow-down.svg";
 	import header_bg from "$lib/assets/header_bg.jpg";
 	import NavbarLinks from "$lib/components/NavbarLinks.svelte";
@@ -155,13 +157,32 @@
 		</h1>
 		<div class="header-icons">
 			<a
-				aria-label="Join Telegram Channel"
-				href="https:&#x2F;&#x2F;t.me&#x2F;+1IPjlBpQdzRmYjMy"
+				href="https://instagram.com/hay.rave"
+			>
+				<img
+					src={instagram}
+					alt={l($lang, $iso, "ui_instagram_logo_alt")}
+					class="mt-2 mr-2"
+					width="30"
+				/>
+			</a>
+			<a
+				href="https://t.me/+1IPjlBpQdzRmYjMy"
 			>
 				<img
 					src={telegram_logo}
 					alt={l($lang, $iso, "ui_telegram_logo_alt")}
 					class="mt-2"
+					width="30"
+				/>
+			</a>
+			<a
+				href="https://www.facebook.com/hayravefestival"
+			>
+				<img
+					src={facebook}
+					alt={l($lang, $iso, "ui_facebook_logo_alt")}
+					class="mt-2 ml-2"
 					width="30"
 				/>
 			</a>

@@ -14,7 +14,7 @@ todo:
 	@grep -rn TODO models/ || true
 	@grep -rn TODO migrations/ || true
 
-build-ui: ui/build
+build-ui:
 	cd ui; npm install; npm run build
 
 build: build-ui

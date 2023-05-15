@@ -11,12 +11,13 @@
 <nav>
 	<div class="mt-5">
 		<div>
-			{#each $navbarPages as page, id}
-				{#if id !== 0}
-					|
-				{/if}
-				<a href={"/" + page.path} class="hover:text-green">
-					{l($lang, $iso, page.title)}
+			<a href={"/"} class="text-white">
+				{l($lang, $iso, "ui_home_link")}
+			</a>
+			{#each $navbarPages as page}
+				|
+				<a href={"/" + page.path} class="text-white">
+					{page.title}
 				</a>
 			{/each}
 		</div>
