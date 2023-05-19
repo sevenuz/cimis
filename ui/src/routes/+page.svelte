@@ -158,6 +158,8 @@
 		<div class="header-icons">
 			<a
 				href="https://instagram.com/hay.rave"
+				target="_blank"
+				rel="noreferrer"
 			>
 				<img
 					src={instagram}
@@ -168,6 +170,8 @@
 			</a>
 			<a
 				href="https://t.me/+1IPjlBpQdzRmYjMy"
+				target="_blank"
+				rel="noreferrer"
 			>
 				<img
 					src={telegram_logo}
@@ -178,6 +182,8 @@
 			</a>
 			<a
 				href="https://www.facebook.com/hayravefestival"
+				target="_blank"
+				rel="noreferrer"
 			>
 				<img
 					src={facebook}
