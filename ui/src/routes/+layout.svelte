@@ -8,6 +8,7 @@
 	import Toast from "$lib/components/Toast.svelte";
 	import NavbarLinks from "$lib/components/NavbarLinks.svelte";
 	import Cookie from "$lib/components/Cookie.svelte";
+	import PageLink from "$lib/components/PageLink.svelte";
 
 	onMount(() => {
 		load_pages();
@@ -41,14 +42,15 @@
 
 <footer>
 	<div class="text-center content">
-		<a class="text-white" href={"mailto:" + l($lang, $iso, "ui_contact_email_address")}>
+		<a
+			class="text-white"
+			href={"mailto:" + l($lang, $iso, "ui_contact_email_address")}
+		>
 			{l($lang, $iso, "ui_contact_email_address")}
 		</a>
 		{#each $footerPages as page}
 			|
-			<a class="text-white" href={"/" + page.path}>
-				{l($lang, $iso, page.title)}
-			</a>
+			<PageLink {page} />
 		{/each}
 	</div>
 </footer>
