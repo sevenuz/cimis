@@ -8,6 +8,7 @@ export function isObject(obj: any) {
 }
 
 export const pb = new PocketBase(config.pb_url);
+pb.autoCancellation(false); // TODO do we really want this?
 
 const is_saving: Record<string, boolean> = {}; // checks if a request is already running for that survey_item
 const update_ids: Record<string, string> = {}; // saves the id of a created record to call update next time
@@ -68,4 +69,8 @@ export async function ResolveFactory<T>(data: T): Promise<T> {
 
 export async function RejectFactory<T>(error: string): Promise<T> {
 	return new Promise((_, reject) => reject(new Error(error)));
+}
+
+export function round_two_digits(n: number): number {
+	return Math.round(n * 100) / 100;
 }

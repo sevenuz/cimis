@@ -1,4 +1,4 @@
-import { error_handling, pb } from "$lib/util";
+import { error_handling, pb, round_two_digits } from "$lib/util";
 import type { Inventory } from "$lib/types/Inventory";
 import { InventoryType } from "$lib/types/Inventory";
 import type { PaymentMethod } from "$lib/types/PaymentMethod";
@@ -83,18 +83,21 @@ export function get_rest_inventory(product: Inventory): number {
 }
 
 export function get_serving_total(selection: Serving[], pm: PaymentMethod): number {
+	const percentages = [];
 	let total = 0;
 	for (let s of selection) {
-		const product = get_inventory_by_selection(s);
-		if (product.type == InventoryType.discount_percentage) {
-			total *= s.price;
+		if (s.type == InventoryType.discount_percentage) {
+			percentages.push(s.price);
 		} else {
 			total += s.amount * s.price;
 		}
 	}
-	total *= 1 + pm.fee_percentage;
+	for (let p of percentages) {
+		total *= p;
+	}
+	total *= pm.fee_percentage;
 	total += pm.fee;
-	return total;
+	return round_two_digits(total);
 }
 
 export function check_selection(selection: Serving) {
@@ -136,6 +139,7 @@ export function edit_selection(product: Inventory, n: number) {
 			product: product.id,
 			amount: n,
 			price: product.price,
+			type: product.type,
 			expand: {
 				product
 			}

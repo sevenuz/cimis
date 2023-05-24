@@ -1,5 +1,5 @@
 import type { Record } from "pocketbase";
-import type { Inventory } from "./Inventory";
+import type { Inventory, InventoryType } from "./Inventory";
 import type { Order } from "./Order";
 
 export interface Serving extends Record {
@@ -8,6 +8,7 @@ export interface Serving extends Record {
 	amount: number;
 	price: number;
 	total: number;
+	type: InventoryType;
 	expand: {
 		order: Order;
 		product: Inventory;
