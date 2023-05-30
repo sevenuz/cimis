@@ -11,14 +11,14 @@
 	import { onMount } from "svelte";
 
 	function smooth_scroll(event) {
-		event.preventDefault()
-		const link = event.currentTarget
-		const anchorId = new URL(link.href).hash.replace('#', '')
-		const anchor = document.getElementById(anchorId)
+		event.preventDefault();
+		const link = event.currentTarget;
+		const anchorId = new URL(link.href).hash.replace("#", "");
+		const anchor = document.getElementById(anchorId);
 		window.scrollTo({
 			top: anchor.offsetTop,
-			behavior: 'smooth'
-		})
+			behavior: "smooth",
+		});
 	}
 
 	onMount(async () => {
@@ -156,11 +156,7 @@
 			</span>
 		</h1>
 		<div class="header-icons">
-			<a
-				href="https://instagram.com/hay.rave"
-				target="_blank"
-				rel="noreferrer"
-			>
+			<a href="https://instagram.com/hay.rave" target="_blank" rel="noreferrer">
 				<img
 					src={instagram}
 					alt={l($lang, $iso, "ui_instagram_logo_alt")}
@@ -168,11 +164,7 @@
 					width="30"
 				/>
 			</a>
-			<a
-				href="https://t.me/+1IPjlBpQdzRmYjMy"
-				target="_blank"
-				rel="noreferrer"
-			>
+			<a href="https://t.me/+1IPjlBpQdzRmYjMy" target="_blank" rel="noreferrer">
 				<img
 					src={telegram_logo}
 					alt={l($lang, $iso, "ui_telegram_logo_alt")}
@@ -195,6 +187,20 @@
 		</div>
 		<div class="header-links">
 			<NavbarLinks />
+		</div>
+		<div>
+			<a
+				href="https://ticket.hayrave.de/hayrave/2023/"
+				target="_blank"
+				rel="noreferrer"
+				class="text-white"
+			>
+				<button class="bg-transparent border border-white">
+					<h3>
+						{l($lang, $iso, "ui_ticket_shop_link")}
+					</h3>
+				</button>
+			</a>
 		</div>
 	</div>
 	<a class="down" href="#topic1" on:click={smooth_scroll}>
