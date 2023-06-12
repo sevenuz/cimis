@@ -58,6 +58,53 @@ h3 {
   line-height: 1.0;
 }
 
+/* https://codepen.io/frederickallen/pen/NZMEMw */
+details[open] summary ~ * {
+	animation: open 0.3s ease-in-out;
+}
+
+@keyframes open {
+	0% {
+		opacity: 0;
+	}
+	100% {
+		opacity: 1;
+	}
+}
+details summary::-webkit-details-marker {
+	display: none;
+}
+
+details summary {
+	width: 100%;
+	padding: 0.5rem 0;
+	border-top: 1px solid rgb(222, 222, 222);
+	position: relative;
+	cursor: pointer;
+	list-style: none;
+}
+
+details summary:after {
+	content: "+";
+	color: black;
+	position: absolute;
+	font-size: 1.75rem;
+	line-height: 0;
+	margin-top: 0.75rem;
+	right: 0;
+	font-weight: 200;
+	transform-origin: center;
+	transition: 200ms linear;
+}
+details[open] summary:after {
+	transform: rotate(45deg);
+	font-size: 2rem;
+}
+details summary {
+	outline: 0;
+}
+/* --- */
+
 .content {
   padding: 2em;
 	max-width: 800px;
