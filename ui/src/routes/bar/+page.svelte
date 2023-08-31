@@ -41,6 +41,7 @@
 
 	onMount(async () => {
 		user = pb.authStore.model as User;
+		load_bar(user.admin);
 	});
 
 	function on_key_down(event: KeyboardEvent) {
