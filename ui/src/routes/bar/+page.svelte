@@ -16,6 +16,8 @@
 		get_serving_total,
 		payment_methods,
 		order,
+		load_orders,
+		get_rest_inventory,
 	} from "$lib/stores/bar";
 	import type { PaymentMethod } from "$lib/types/PaymentMethod";
 	import type { Order } from "$lib/types/Order";
@@ -23,16 +25,29 @@
 	import { NotificationType, notify } from "$lib/stores/notifications";
 
 	let show_final_step = false;
+	let show_overview = false;
 	let given_total = 0;
 	let chosen_total = 0;
+
+	let overview_start_date = null;
+	let overview_end_date = null;
+	let overview_orders = [] as Order[];
+	let overview_inventory = [];
+	let overview_total = 0;
 
 	let user: User | null = null;
 	let username_or_email = "";
 	let password = "";
+
 	onMount(async () => {
-		load_bar();
 		user = pb.authStore.model as User;
 	});
+
+	function on_key_down(event: KeyboardEvent) {
+		if (event.key == "Enter" && user == null) {
+			login();
+		}
+	}
 
 	async function login() {
 		await pb
@@ -41,11 +56,52 @@
 			.catch(error_handling);
 
 		user = pb.authStore.model as User;
+		load_bar(user.admin);
 	}
 
 	function logout() {
 		pb.authStore.clear();
 		user = null;
+		username_or_email = "";
+		password = "";
+	}
+
+	function open_overview() {
+		show_overview = true;
+		let now = new Date();
+		overview_start_date = now.toISOString().slice(0, 16);
+		now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+		overview_end_date = now.toISOString().slice(0, 16);
+
+		overview_inventory = [];
+		for (let inv of $inventory) {
+			let amount = inv.amount;
+			let rest = get_rest_inventory(inv);
+			overview_inventory.push({
+				name: inv.expand.name.name,
+				amount,
+				rest,
+				percentage: round_two_digits(rest / amount),
+			});
+		}
+		overview_inventory.sort((a, b) => (a.percentage > b.percentage ? 1 : -1));
+	}
+
+	async function load_order_overview() {
+		try {
+			overview_orders = await load_orders(
+				new Date(overview_start_date).toISOString().replace("T", " "),
+				new Date(overview_end_date).toISOString().replace("T", " ")
+			);
+		} catch (e) {
+			notify({
+				message: l($lang, $iso, "ui_invalid_date"),
+				type: NotificationType.error,
+				duration: 2000,
+			});
+		}
+		overview_total = 0;
+		overview_orders.forEach((e) => (overview_total += e.total + e.tip));
 	}
 
 	// @return string containing the hex representation of the given color
@@ -168,6 +224,14 @@
 	{/if}
 </div>
 {#if user != null}
+	{#if user.admin}
+		<button
+			class="absolute right-0 top-0 rounded-full"
+			on:click={open_overview}
+		>
+			{l($lang, $iso, "ui_overview")}
+		</button>
+	{/if}
 	<div class="md:grid grid-cols-3" style="width: 95vw;margin: auto;">
 		<div class="col-span-2">
 			<div class="grid grid-cols-4">
@@ -314,6 +378,124 @@
 		</div>
 	</div>
 {/if}
+{#if show_overview && user.admin}
+	<div
+		class="fixed top-1 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-full max-h-full text-center"
+	>
+		<div class="content bg-white rounded-md h-full">
+			<div class="md:grid grid-cols-2">
+				<div>
+					<h2>
+						{l($lang, $iso, "ui_finance")}
+					</h2>
+					<input
+						class="rounded-full"
+						type="datetime-local"
+						bind:value={overview_start_date}
+					/>
+					<input
+						class="rounded-full"
+						type="datetime-local"
+						bind:value={overview_end_date}
+					/>
+					<div>
+						<button
+							class="bg-white border-black rounded-full bg-yellow"
+							on:click={load_order_overview}
+						>
+							{l($lang, $iso, "ui_show")}
+						</button>
+					</div>
+					<table class="text-center">
+						<thead>
+							<tr>
+								<th>
+									{l($lang, $iso, "ui_date")}
+								</th>
+								<th>
+									{l($lang, $iso, "ui_total")}
+								</th>
+								<th>
+									{l($lang, $iso, "ui_tip")}
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each overview_orders as order}
+								<tr>
+									<td>
+										{new Date(order.created).toLocaleString("de-DE")}
+									</td>
+									<td>
+										{order.total}€
+									</td>
+									<td>
+										{order.tip}€
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+					<h2>
+						{l($lang, $iso, "ui_total")}
+						{overview_total}€
+					</h2>
+				</div>
+				<div class="mb-2">
+					<h2>
+						{l($lang, $iso, "ui_stock")}
+					</h2>
+					<table>
+						<thead>
+							<tr>
+								<th>
+									{l($lang, $iso, "ui_name")}
+								</th>
+								<th>
+									{l($lang, $iso, "ui_stock")}
+								</th>
+								<th>
+									{l($lang, $iso, "ui_percentage")}
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each overview_inventory as inv}
+								<tr class:text-red={inv.percentage < 0.2}>
+									<td>
+										{l($lang, $iso, inv.name)}
+									</td>
+									<td>
+										{inv.rest}/{inv.amount}
+									</td>
+									<td>
+										{inv.percentage * 100}% left
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<button
+				class="bg-white border-black rounded-full bg-yellow"
+				on:click={() => (show_overview = false)}
+			>
+				{l($lang, $iso, "ui_close")}
+			</button>
+		</div>
+	</div>
+{/if}
+
+<svelte:window on:keydown={on_key_down} />
+<svelte:head>
+	<title>
+		{l($lang, $iso, "ui_bar")}
+	</title>
+</svelte:head>
 
 <style>
+	.text-red {
+		color: red;
+	}
 </style>

@@ -14,15 +14,17 @@ export const order = writable({} as Order);
 export const all_servings = writable([] as Serving[]);
 export const new_servings = writable([] as Serving[]);
 
-let loaded = false;
+export async function load_orders(start_date: string, end_date: string) {
+	return await pb.collection('order').getFullList<Order>(50, {
+		filter: `created >= "${start_date}" && created < "${end_date}"`,
+	});
+}
 
-export async function load_bar() {
-	if (loaded)
-		return;
-	loaded = true;
+export async function load_bar(is_admin: boolean) {
 	const result_list = await pb
 		.collection("inventory")
 		.getFullList<Inventory>(50, {
+			filter: is_admin ? "" : `admin_only=${is_admin}`,
 			sort: "order",
 			expand: "name"
 		})
@@ -30,7 +32,6 @@ export async function load_bar() {
 			return response;
 		})
 		.catch((err) => {
-			loaded = false;
 			error_handling(err);
 			return [] as Inventory[];
 		});
@@ -45,7 +46,6 @@ export async function load_bar() {
 			return response;
 		})
 		.catch((err) => {
-			loaded = false;
 			error_handling(err);
 			return [] as PaymentMethod[];
 		});
@@ -58,11 +58,18 @@ export async function load_bar() {
 			return response;
 		})
 		.catch((err) => {
-			loaded = false;
 			error_handling(err);
 			return [] as Serving[];
 		});
 	all_servings.set(result_list3);
+
+	pb.collection('serving').subscribe<Serving>('*', function(e) {
+		if (e.action === "create") {
+			all_servings.set([...get(all_servings), e.record])
+		} else {
+			console.log("unerwartete bearbeitung in serving", e);
+		}
+	});
 }
 
 export function get_inventory_by_selection(selection: Serving): Inventory {
