@@ -39,6 +39,8 @@
 	let username_or_email = "";
 	let password = "";
 
+	let is_saving = false;
+
 	onMount(async () => {
 		user = pb.authStore.model as User;
 		load_bar(user.admin);
@@ -167,6 +169,8 @@
 	}
 
 	function save_order() {
+		if (is_saving) return;
+		is_saving = true;
 		pb.collection("order")
 			.create<Order>($order)
 			.then((o) => {
@@ -179,6 +183,7 @@
 				}
 				Promise.all(promises).then(() => {
 					show_final_step = false;
+					is_saving = false;
 					$order = {} as Order;
 					$new_servings = [];
 					given_total = 0;
