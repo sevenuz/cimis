@@ -167,7 +167,6 @@
 	}
 
 	function save_order() {
-		$order.tip = round_two_digits(chosen_total - $order.total);
 		pb.collection("order")
 			.create<Order>($order)
 			.then((o) => {
@@ -179,7 +178,7 @@
 					);
 				}
 				Promise.all(promises).then(() => {
-					show_final_step = true;
+					show_final_step = false;
 					$order = {} as Order;
 					$new_servings = [];
 					given_total = 0;
@@ -325,48 +324,10 @@
 				{$order.total}
 				€
 			</h2>
-			<div class="md:grid grid-cols-2">
-				<div>
-					{l($lang, $iso, "ui_given_total")}:
-				</div>
-				<div class="mb-2">
-					<input class="rounded-full" type="number" bind:value={given_total} />
-				</div>
-				<div>
-					{l($lang, $iso, "ui_chosen_total")}:
-				</div>
-				<div>
-					<input class="rounded-full" type="number" bind:value={chosen_total} />
-				</div>
-			</div>
-			{#if chosen_total >= $order.total && chosen_total <= given_total}
-				<div transition:fade>
-					<h2 class="m-4">
-						{l($lang, $iso, "ui_payback")}:
-						{round_two_digits(given_total - chosen_total)}
-						€
-					</h2>
-				</div>
-				<div>
-					<h3 class="m-4">
-						{l($lang, $iso, "ui_tip")}:
-						{round_two_digits(chosen_total - $order.total)}
-						€
-						<br />
-						<br />
-						{#if Math.abs((chosen_total - $order.total) / $order.total) >= 0.1}
-							{l($lang, $iso, "ui_happy_tip")}
-						{:else}
-							{l($lang, $iso, "ui_sad_tip")}
-						{/if}
-					</h3>
-				</div>
-			{/if}
 			<button
 				style="background-color: green; color: white;"
 				class="disabled:opacity-25 disabled:border-none rounded-full"
 				on:click={save_order}
-				disabled={chosen_total < $order.total || chosen_total > given_total}
 			>
 				{l($lang, $iso, "ui_save")}
 			</button>
