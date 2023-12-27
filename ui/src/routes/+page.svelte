@@ -190,7 +190,7 @@
 		</div>
 		<div>
 			<a
-				href="https://ticket.hayrave.de/hayrave/2023/"
+				href={l($lang, $iso, "ui_ticket_shop_url")}
 				target="_blank"
 				rel="noreferrer"
 				class="text-white"
