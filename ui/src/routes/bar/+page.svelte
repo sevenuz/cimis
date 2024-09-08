@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { iso, l, lang } from "$lib/stores/lang";
-	import { error_handling, pb, round_two_digits } from "$lib/util";
+	import { error_handling, pb } from "$lib/util";
 	import type { Record } from "pocketbase";
 	import type { User } from "$lib/types/User";
 	import { InventoryType } from "$lib/types/Inventory";
@@ -17,23 +17,20 @@
 		payment_methods,
 		order,
 		load_orders,
-		get_rest_inventory,
 	} from "$lib/stores/bar";
 	import type { PaymentMethod } from "$lib/types/PaymentMethod";
 	import type { Order } from "$lib/types/Order";
-	import type { Serving } from "$lib/types/Serving";
 	import { NotificationType, notify } from "$lib/stores/notifications";
 
 	let show_final_step = false;
 	let show_overview = false;
-	let given_total = 0;
-	let chosen_total = 0;
 
 	let overview_start_date = null;
 	let overview_end_date = null;
 	let overview_orders = [] as Order[];
-	let overview_inventory = [];
+	let overview_total_per_pm = {};
 	let overview_total = 0;
+	let overview_bookout = 0;
 
 	let user: User | null = null;
 	let username_or_email = "";
@@ -57,6 +54,8 @@
 			.collection("user")
 			.authWithPassword(username_or_email, password)
 			.catch(error_handling);
+		username_or_email = "";
+		password = "";
 
 		user = pb.authStore.model as User;
 		load_bar(user.admin);
@@ -65,8 +64,6 @@
 	function logout() {
 		pb.authStore.clear();
 		user = null;
-		username_or_email = "";
-		password = "";
 	}
 
 	function open_overview() {
@@ -75,26 +72,34 @@
 		overview_start_date = now.toISOString().slice(0, 16);
 		now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
 		overview_end_date = now.toISOString().slice(0, 16);
+	}
 
-		overview_inventory = [];
-		for (let inv of $inventory) {
-			let amount = inv.amount;
-			let rest = get_rest_inventory(inv);
-			overview_inventory.push({
-				name: inv.expand.name.name,
-				amount,
-				rest,
-				percentage: round_two_digits(rest / amount),
-			});
-		}
-		overview_inventory.sort((a, b) => (a.percentage > b.percentage ? 1 : -1));
+	function order_bookout(pm: PaymentMethod) {
+		if(is_saving) return;
+		is_saving = true;
+		pb.collection("bar_order")
+			.create<Order>({
+				user: user.id,
+				payment_method: pm.id,
+				total: overview_bookout,
+				is_bookout: true,
+			})
+			.then(() => {
+				notify({
+					message: l($lang, $iso, "ui_order_saved"),
+					type: NotificationType.success,
+					duration: 2000,
+				});
+			})
+			.catch(error_handling)
+			.finally(() => (is_saving = false));
 	}
 
 	async function load_order_overview() {
 		try {
 			overview_orders = await load_orders(
 				new Date(overview_start_date).toISOString().replace("T", " "),
-				new Date(overview_end_date).toISOString().replace("T", " ")
+				new Date(overview_end_date).toISOString().replace("T", " "),
 			);
 		} catch (e) {
 			notify({
@@ -103,8 +108,12 @@
 				duration: 2000,
 			});
 		}
+		overview_total_per_pm = {};// key pm id, value total
 		overview_total = 0;
-		overview_orders.forEach((e) => (overview_total += e.total + e.tip));
+		overview_orders.forEach((e) => {
+			overview_total += e.total;
+			overview_total_per_pm[e.payment_method] = (overview_total_per_pm[e.payment_method] || 0) + e.total;
+		});
 	}
 
 	// @return string containing the hex representation of the given color
@@ -164,38 +173,25 @@
 		$order.user = user.id;
 		$order.payment_method = pm.id;
 		$order.total = get_serving_total($new_servings, pm);
-		$order.tip = 0;
 		show_final_step = true;
 	}
 
 	function save_order() {
 		if (is_saving) return;
 		is_saving = true;
-		pb.collection("order")
+		pb.collection("bar_order")
 			.create<Order>($order)
-			.then((o) => {
-				const promises = [];
-				for (let s of $new_servings) {
-					s.order = o.id;
-					promises.push(
-						pb.collection("serving").create<Serving>(s).catch(error_handling)
-					);
-				}
-				Promise.all(promises).then(() => {
-					show_final_step = false;
-					is_saving = false;
-					$order = {} as Order;
-					$new_servings = [];
-					given_total = 0;
-					chosen_total = 0;
-					notify({
-						message: l($lang, $iso, "ui_order_saved"),
-						type: NotificationType.success,
-						duration: 2000,
-					});
+			.then(() => {
+				$new_servings = [];
+				show_final_step = false;
+				notify({
+					message: l($lang, $iso, "ui_order_saved"),
+					type: NotificationType.success,
+					duration: 2000,
 				});
 			})
-			.catch(error_handling);
+			.catch(error_handling)
+			.finally(() => (is_saving = false));
 	}
 </script>
 
@@ -319,7 +315,7 @@
 	<div
 		class="fixed top-1 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-full max-h-full text-center"
 	>
-		<div class="content bg-white rounded-md h-full">
+		<div class="content bg-blur rounded-md h-full">
 			<h1>
 				{$payment_methods.find((pm) => pm.id == $order.payment_method).expand
 					.name.name}
@@ -349,8 +345,8 @@
 	<div
 		class="fixed top-1 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-full max-h-full text-center"
 	>
-		<div class="content bg-white rounded-md h-full">
-			<div class="md:grid grid-cols-2">
+		<div class="content rounded-md h-full bg-blur">
+			<div class="content-center">
 				<div>
 					<h2>
 						{l($lang, $iso, "ui_finance")}
@@ -365,7 +361,7 @@
 						type="datetime-local"
 						bind:value={overview_end_date}
 					/>
-					<div>
+					<div style="padding-bottom:30px;">
 						<button
 							class="bg-white border-black rounded-full bg-yellow"
 							on:click={load_order_overview}
@@ -373,83 +369,90 @@
 							{l($lang, $iso, "ui_show")}
 						</button>
 					</div>
-					<table class="text-center">
-						<thead>
-							<tr>
-								<th>
-									{l($lang, $iso, "ui_date")}
-								</th>
-								<th>
-									{l($lang, $iso, "ui_total")}
-								</th>
-								<th>
-									{l($lang, $iso, "ui_tip")}
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each overview_orders as order}
+					<div style="max-height:300px;overflow:auto;">
+						<table class="text-center" style="margin:auto;">
+							<thead>
 								<tr>
-									<td>
-										{new Date(order.created).toLocaleString("de-DE")}
-									</td>
-									<td>
-										{order.total}€
-									</td>
-									<td>
-										{order.tip}€
-									</td>
+									<th>
+										{l($lang, $iso, "ui_date")}
+									</th>
+									<th>
+										{l($lang, $iso, "ui_payment_method")}
+									</th>
+									<th>
+										{l($lang, $iso, "ui_total")}
+									</th>
 								</tr>
-							{/each}
-						</tbody>
-					</table>
-					<h2>
-						{l($lang, $iso, "ui_total")}
-						{overview_total}€
-					</h2>
-				</div>
-				<div class="mb-2">
-					<h2>
-						{l($lang, $iso, "ui_stock")}
-					</h2>
-					<table>
-						<thead>
-							<tr>
-								<th>
-									{l($lang, $iso, "ui_name")}
-								</th>
-								<th>
-									{l($lang, $iso, "ui_stock")}
-								</th>
-								<th>
-									{l($lang, $iso, "ui_percentage")}
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each overview_inventory as inv}
-								<tr class:text-red={inv.percentage < 0.2}>
-									<td>
-										{l($lang, $iso, inv.name)}
-									</td>
-									<td>
-										{inv.rest}/{inv.amount}
-									</td>
-									<td>
-										{inv.percentage * 100}% left
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
+							</thead>
+							<tbody>
+								{#each overview_orders as order}
+									<tr>
+										<td>
+											{new Date(order.created).toLocaleString("de-DE")}
+										</td>
+										<td>
+											{l($lang, $iso, $payment_methods.find(pm => pm.id == order.payment_method).expand.name.name)}
+										</td>
+										<td>
+											{order.total}€
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+					<div style="padding-top:30px;">
+						{#each $payment_methods as pm}
+							<h3>
+								<b>
+									{l($lang, $iso, pm.expand.name.name)}:
+									{(overview_total_per_pm[pm.id] || 0).toFixed(2)}€
+								</b>
+							</h3>
+						{/each}
+						_______________
+						<h3>
+							<b>
+								{l($lang, $iso, "ui_total")}
+								{overview_total.toFixed(2)}€
+							</b>
+						</h3>
+					</div>
+					<div style="padding-top:30px;">
+						<h2>
+							{l($lang, $iso, "ui_bookkeeping")}
+						</h2>
+						{l($lang, $iso, "ui_bookout")}
+						<input
+							style="width: 80px;"
+							class="rounded-full"
+							type="number"
+							bind:value={overview_bookout}
+						/>
+						{#each $payment_methods as pm}
+							<div style="max-width: 444px;margin:auto;">
+								<button
+									style={get_colors(pm.color)}
+									class="w-full rounded-full"
+									on:click={() => order_bookout(pm)}
+								>
+									{l($lang, $iso, pm.expand.name.name)}:
+									{overview_bookout.toFixed(2)}
+									€
+								</button>
+							</div>
+						{/each}
+					</div>
 				</div>
 			</div>
-			<button
-				class="bg-white border-black rounded-full bg-yellow"
-				on:click={() => (show_overview = false)}
-			>
-				{l($lang, $iso, "ui_close")}
-			</button>
+			<div style="padding-top:30px;">
+				<button
+					class="bg-white border-black rounded-full bg-yellow"
+					on:click={() => (show_overview = false)}
+				>
+					{l($lang, $iso, "ui_close")}
+				</button>
+			</div>
 		</div>
 	</div>
 {/if}

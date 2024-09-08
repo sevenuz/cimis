@@ -8,13 +8,14 @@
 
 	let page: Page | null;
 	$: {
+		let raw_path = location.pathname.substring(1);
 		(async () => {
 			page =
 				find_page(path) ||
 				(await pb
 					.collection("page")
 					.getFirstListItem(
-						`path="${path}" && iso="${$iso}" && link!="deactivated"`
+						`path="${raw_path}" && iso="${$iso}" && link!="deactivated"`
 					)
 					.catch((err) => {
 						error_handling(err);

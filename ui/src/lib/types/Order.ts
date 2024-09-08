@@ -6,7 +6,7 @@ export interface Order extends Record {
 	user: string; // relation
 	payment_method: string; // relation
 	total: number;
-	tip: number;
+	is_bookout: boolean;
 	expand: {
 		user: User
 		payment_method: PaymentMethod

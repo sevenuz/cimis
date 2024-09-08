@@ -11,7 +11,6 @@ export enum InventoryType {
 export interface Inventory extends Record {
 	slug: string;
 	name: string; // relation
-	amount: number;
 	price: number;
 	type: InventoryType;
 	color: string;
