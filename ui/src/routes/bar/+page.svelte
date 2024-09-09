@@ -437,7 +437,7 @@
 									on:click={() => order_bookout(pm)}
 								>
 									{l($lang, $iso, pm.expand.name.name)}:
-									{overview_bookout.toFixed(2)}
+									{overview_bookout}
 									€
 								</button>
 							</div>

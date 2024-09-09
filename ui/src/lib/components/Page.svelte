@@ -6,20 +6,26 @@
 
 	export let path: string;
 
+	async function load_page(p: string) {
+		return pb
+			.collection("page")
+			.getFirstListItem(
+				`path="${p}" && iso="${$iso}" && link!="deactivated"`
+		)
+	}
+
 	let page: Page | null;
 	$: {
-		let right_path = path || location.pathname.substring(1);
 		(async () => {
 			page =
 				find_page(path) ||
-				(await pb
-					.collection("page")
-					.getFirstListItem(
-						`path="${right_path}" && iso="${$iso}" && link!="deactivated"`
-					)
-					.catch((err) => {
-						error_handling(err);
-						return null;
+				(await load_page(path)
+					.catch(async () => {
+						return await load_page(location.pathname.substring(1))
+							.catch((err) => {
+								error_handling(err);
+								return null;
+							});
 					}));
 		})();
 	}
