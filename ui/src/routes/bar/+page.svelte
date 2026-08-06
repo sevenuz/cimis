@@ -1,47 +1,52 @@
 <script lang="ts">
 	import { iso, l, lang } from "$lib/stores/lang";
 	import { error_handling, pb } from "$lib/util";
-	import type { Record } from "pocketbase";
 	import type { User } from "$lib/types/User";
-	import { InventoryType } from "$lib/types/Inventory";
+	import { ProductType } from "$lib/types/Product";
+	import type { Product } from "$lib/types/Product";
 	import { onMount } from "svelte";
 	import { fade } from "svelte/transition";
 	import {
 		edit_selection,
 		check_selection,
-		inventory,
-		load_bar,
+		products,
+		load_catalog,
 		new_servings,
 		remove_selection,
 		get_serving_total,
 		payment_methods,
 		order,
-		load_orders,
+		bars,
+		current_bar_id,
+		queue_order,
+		requires_deposit_warning,
+		add_wheel_win,
 	} from "$lib/stores/bar";
+	import { pending_orders } from "$lib/stores/bar_queue";
 	import type { PaymentMethod } from "$lib/types/PaymentMethod";
-	import type { Order } from "$lib/types/Order";
 	import { NotificationType, notify } from "$lib/stores/notifications";
 
 	let show_final_step = false;
-	let show_overview = false;
-
-	let overview_start_date = null;
-	let overview_end_date = null;
-	let overview_orders = [] as Order[];
-	let overview_total_per_pm = {};
-	let overview_total = 0;
-	let overview_bookout = 0;
+	let show_pending = false;
+	let show_wheel_prompt = false;
 
 	let user: User | null = null;
 	let username_or_email = "";
 	let password = "";
 
-	let is_saving = false;
-
 	onMount(async () => {
 		user = pb.authStore.model as User;
-		load_bar(user.admin);
+		load_catalog(user?.admin || false);
 	});
+
+	// picks a default bar so the register isn't empty before anyone touches the selector
+	$: if (!$current_bar_id && $bars.length) {
+		current_bar_id.set($bars[0].id);
+	}
+
+	$: visible_products = $products.filter(
+		(p) => !$current_bar_id || p.bars.includes($current_bar_id)
+	);
 
 	function on_key_down(event: KeyboardEvent) {
 		if (event.key == "Enter" && user == null) {
@@ -58,62 +63,12 @@
 		password = "";
 
 		user = pb.authStore.model as User;
-		load_bar(user.admin);
+		load_catalog(user?.admin || false);
 	}
 
 	function logout() {
 		pb.authStore.clear();
 		user = null;
-	}
-
-	function open_overview() {
-		show_overview = true;
-		let now = new Date();
-		overview_start_date = now.toISOString().slice(0, 16);
-		now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-		overview_end_date = now.toISOString().slice(0, 16);
-	}
-
-	function order_bookout(pm: PaymentMethod) {
-		if(is_saving) return;
-		is_saving = true;
-		pb.collection("bar_order")
-			.create<Order>({
-				user: user.id,
-				payment_method: pm.id,
-				total: overview_bookout,
-				is_bookout: true,
-			})
-			.then(() => {
-				notify({
-					message: l($lang, $iso, "ui_order_saved"),
-					type: NotificationType.success,
-					duration: 2000,
-				});
-			})
-			.catch(error_handling)
-			.finally(() => (is_saving = false));
-	}
-
-	async function load_order_overview() {
-		try {
-			overview_orders = await load_orders(
-				new Date(overview_start_date).toISOString().replace("T", " "),
-				new Date(overview_end_date).toISOString().replace("T", " "),
-			);
-		} catch (e) {
-			notify({
-				message: l($lang, $iso, "ui_invalid_date"),
-				type: NotificationType.error,
-				duration: 2000,
-			});
-		}
-		overview_total_per_pm = {};// key pm id, value total
-		overview_total = 0;
-		overview_orders.forEach((e) => {
-			overview_total += e.total;
-			overview_total_per_pm[e.payment_method] = (overview_total_per_pm[e.payment_method] || 0) + e.total;
-		});
 	}
 
 	// @return string containing the hex representation of the given color
@@ -133,11 +88,6 @@
 		} else {
 			return "white";
 		}
-		// shifts hex characters two to the left
-		// let fake = "#";
-		// fake += hex.substring(3);
-		// fake += hex.substring(1, 3);
-		// return fake;
 	}
 
 	function get_colors(c: string): string {
@@ -161,6 +111,18 @@
 		);
 	}
 
+	function on_product_click(product: Product, n: number) {
+		edit_selection(product, n);
+		if (n > 0 && product.is_wheel) {
+			show_wheel_prompt = true;
+		}
+	}
+
+	function pick_wheel_win(product: Product) {
+		add_wheel_win(product);
+		show_wheel_prompt = false;
+	}
+
 	function fill_order(pm: PaymentMethod) {
 		if ($new_servings.length == 0) {
 			notify({
@@ -177,21 +139,14 @@
 	}
 
 	function save_order() {
-		if (is_saving) return;
-		is_saving = true;
-		pb.collection("bar_order")
-			.create<Order>($order)
-			.then(() => {
-				$new_servings = [];
-				show_final_step = false;
-				notify({
-					message: l($lang, $iso, "ui_order_saved"),
-					type: NotificationType.success,
-					duration: 2000,
-				});
-			})
-			.catch(error_handling)
-			.finally(() => (is_saving = false));
+		queue_order($order, $new_servings);
+		$new_servings = [];
+		show_final_step = false;
+		notify({
+			message: l($lang, $iso, "ui_order_saved"),
+			type: NotificationType.success,
+			duration: 2000,
+		});
 	}
 </script>
 
@@ -222,45 +177,58 @@
 		<button class="rounded-full" on:click={logout}>
 			{l($lang, $iso, "ui_logout")}
 		</button>
+		<div class="my-2">
+			{l($lang, $iso, "ui_bar_selector")}:
+			<select bind:value={$current_bar_id} class="rounded-full">
+				{#each $bars as b}
+					<option value={b.id}>{b.name}</option>
+				{/each}
+			</select>
+		</div>
 	{/if}
 </div>
 {#if user != null}
 	{#if user.admin}
-		<button
-			class="absolute right-0 top-0 rounded-full"
-			on:click={open_overview}
-		>
-			{l($lang, $iso, "ui_overview")}
-		</button>
+		<div class="absolute right-0 top-0 flex gap-1">
+			<a class="rounded-full" href="/bar/inventory">
+				{l($lang, $iso, "ui_inventory")}
+			</a>
+			<a class="rounded-full" href="/bar/recipes">
+				{l($lang, $iso, "ui_recipes")}
+			</a>
+			<a class="rounded-full" href="/bar/bookkeeping">
+				{l($lang, $iso, "ui_bookkeeping")}
+			</a>
+		</div>
 	{/if}
 	<div class="md:grid grid-cols-3" style="width: 95vw;margin: auto;">
 		<div class="col-span-2">
 			<div class="grid grid-cols-4">
-				{#each $inventory as product}
+				{#each visible_products as product}
 					<button
 						class="disabled:opacity-25 disabled:border-none"
 						style={get_colors(product.color)}
-						on:click={() => edit_selection(product, 1)}
+						on:click={() => on_product_click(product, 1)}
 						disabled={product.deactivated}
 					>
 						{l($lang, $iso, product.expand.name.name)}
-						{#if product.type == InventoryType.deposit}
+						{#if product.type == ProductType.deposit}
 							+
 						{/if}
 						<br />
 						<span class="text-xs">
-							{#if product.type == InventoryType.discount_percentage}
+							{#if product.type == ProductType.discount_percentage}
 								({product.price * 100}%)
 							{:else}
 								({product.price}€)
 							{/if}
 						</span>
 					</button>
-					{#if product.type == InventoryType.deposit}
+					{#if product.type == ProductType.deposit}
 						<button
 							class="disabled:opacity-25 disabled:border-none"
 							style={get_colors(product.color)}
-							on:click={() => edit_selection(product, -1)}
+							on:click={() => on_product_click(product, -1)}
 							disabled={product.deactivated}
 						>
 							{l($lang, $iso, product.expand.name.name)}
@@ -292,6 +260,9 @@
 							on:change={() => check_selection(selection)}
 						/>
 						{l($lang, $iso, selection.expand.product.expand.name.name)}
+						{#if selection.free}
+							({l($lang, $iso, "ui_free")})
+						{/if}
 					</li>
 				{/each}
 				{#each $payment_methods as pm}
@@ -325,6 +296,11 @@
 				{$order.total}
 				€
 			</h2>
+			{#if requires_deposit_warning($new_servings)}
+				<p class="text-red" style="font-size: 1.4em; font-weight: bold;">
+					{l($lang, $iso, "ui_deposit_warning")}
+				</p>
+			{/if}
 			<button
 				style="background-color: green; color: white;"
 				class="disabled:opacity-25 disabled:border-none rounded-full"
@@ -341,120 +317,54 @@
 		</div>
 	</div>
 {/if}
-{#if show_overview && user.admin}
+{#if show_wheel_prompt}
 	<div
 		class="fixed top-1 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-full max-h-full text-center"
 	>
-		<div class="content rounded-md h-full bg-blur">
-			<div class="content-center">
-				<div>
-					<h2>
-						{l($lang, $iso, "ui_finance")}
-					</h2>
-					<input
-						class="rounded-full"
-						type="datetime-local"
-						bind:value={overview_start_date}
-					/>
-					<input
-						class="rounded-full"
-						type="datetime-local"
-						bind:value={overview_end_date}
-					/>
-					<div style="padding-bottom:30px;">
-						<button
-							class="bg-white border-black rounded-full bg-yellow"
-							on:click={load_order_overview}
-						>
-							{l($lang, $iso, "ui_show")}
-						</button>
-					</div>
-					<div style="max-height:300px;overflow:auto;">
-						<table class="text-center" style="margin:auto;">
-							<thead>
-								<tr>
-									<th>
-										{l($lang, $iso, "ui_date")}
-									</th>
-									<th>
-										{l($lang, $iso, "ui_payment_method")}
-									</th>
-									<th>
-										{l($lang, $iso, "ui_total")}
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each overview_orders as order}
-									<tr>
-										<td>
-											{new Date(order.created).toLocaleString("de-DE")}
-										</td>
-										<td>
-											{l($lang, $iso, $payment_methods.find(pm => pm.id == order.payment_method).expand.name.name)}
-										</td>
-										<td>
-											{order.total}€
-										</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-					<div style="padding-top:30px;">
-						{#each $payment_methods as pm}
-							<h3>
-								<b>
-									{l($lang, $iso, pm.expand.name.name)}:
-									{(overview_total_per_pm[pm.id] || 0).toFixed(2)}€
-								</b>
-							</h3>
-						{/each}
-						_______________
-						<h3>
-							<b>
-								{l($lang, $iso, "ui_total")}
-								{overview_total.toFixed(2)}€
-							</b>
-						</h3>
-					</div>
-					<div style="padding-top:30px;">
-						<h2>
-							{l($lang, $iso, "ui_bookkeeping")}
-						</h2>
-						{l($lang, $iso, "ui_bookout")}
-						<input
-							style="width: 80px;"
-							class="rounded-full"
-							type="number"
-							bind:value={overview_bookout}
-						/>
-						{#each $payment_methods as pm}
-							<div style="max-width: 444px;margin:auto;">
-								<button
-									style={get_colors(pm.color)}
-									class="w-full rounded-full"
-									on:click={() => order_bookout(pm)}
-								>
-									{l($lang, $iso, pm.expand.name.name)}:
-									{overview_bookout}
-									€
-								</button>
-							</div>
-						{/each}
-					</div>
-				</div>
+		<div class="content bg-blur rounded-md h-full">
+			<h2>{l($lang, $iso, "ui_wheel_prompt")}</h2>
+			<div class="grid grid-cols-4">
+				{#each visible_products.filter((p) => !p.is_wheel) as product}
+					<button
+						style={get_colors(product.color)}
+						on:click={() => pick_wheel_win(product)}
+					>
+						{l($lang, $iso, product.expand.name.name)}
+					</button>
+				{/each}
 			</div>
-			<div style="padding-top:30px;">
-				<button
-					class="bg-white border-black rounded-full bg-yellow"
-					on:click={() => (show_overview = false)}
-				>
-					{l($lang, $iso, "ui_close")}
-				</button>
-			</div>
+			<button
+				class="bg-white border-black rounded-full bg-yellow"
+				on:click={() => (show_wheel_prompt = false)}
+			>
+				{l($lang, $iso, "ui_cancel")}
+			</button>
 		</div>
 	</div>
+{/if}
+{#if $pending_orders.length > 0}
+	<button
+		class="fixed bottom-2 right-2 rounded-full bg-yellow z-50"
+		on:click={() => (show_pending = !show_pending)}
+	>
+		{$pending_orders.length}
+		{l($lang, $iso, "ui_pending")}
+	</button>
+	{#if show_pending}
+		<div
+			class="fixed bottom-14 right-2 bg-white text-black rounded-md p-2 z-50"
+			style="max-height:200px;overflow:auto;"
+		>
+			<ul>
+				{#each $pending_orders as p}
+					<li>
+						{p.total}€ - {p.servings.length}
+						{l($lang, $iso, "ui_items")}
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
 {/if}
 
 <svelte:window on:keydown={on_key_down} />

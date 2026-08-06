@@ -74,3 +74,22 @@ export async function RejectFactory<T>(error: string): Promise<T> {
 export function round_two_digits(n: number): number {
 	return Math.round(n * 100) / 100;
 }
+
+// small localStorage wrappers used for offline-fallback caching, tolerant of
+// private-browsing / quota errors since this is always a best-effort cache
+export function local_cache_get<T>(key: string): T | null {
+	try {
+		const raw = localStorage.getItem(key);
+		return raw ? (JSON.parse(raw) as T) : null;
+	} catch {
+		return null;
+	}
+}
+
+export function local_cache_set<T>(key: string, value: T) {
+	try {
+		localStorage.setItem(key, JSON.stringify(value));
+	} catch {
+		// quota exceeded / private browsing, best-effort only
+	}
+}

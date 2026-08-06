@@ -1,22 +1,16 @@
 import type { Record } from "pocketbase";
-import type { LanguageKey } from "./LanguageKey";
+import type { Event } from "./Event";
+import type { Ingredient } from "./Ingredient";
 
-export enum InventoryType {
-	product = "product",
-	discount_percentage = "discount_percentage",
-	discount = "discount",
-	deposit = "deposit"
-}
-
+// A bar_inventory row is one receipt/correction entry (append-only), not a running total.
+// Stock on hand for an ingredient = sum of its rows for the given event.
 export interface Inventory extends Record {
-	slug: string;
-	name: string; // relation
-	price: number;
-	type: InventoryType;
-	color: string;
-	order: number;
-	deactivated: boolean;
+	event: string; // relation
+	ingredient: string; // relation
+	amount: number; // signed delta, negative for corrections/spoilage
+	note: string;
 	expand: {
-		name: LanguageKey
+		event: Event;
+		ingredient: Ingredient;
 	}
 }
