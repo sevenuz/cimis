@@ -16,17 +16,16 @@
 
 	let page: Page | null;
 	$: {
+		const requested = path;
+		page = undefined;
 		(async () => {
-			page =
-				find_page(path) ||
-				(await load_page(path)
-					.catch(async () => {
-						return await load_page(location.pathname.substring(1))
-							.catch((err) => {
-								error_handling(err);
-								return null;
-							});
-					}));
+			const p =
+				find_page(requested) ||
+				(await load_page(requested).catch((err) => {
+					error_handling(err);
+					return null;
+				}));
+			if (requested === path) page = p;
 		})();
 	}
 </script>
