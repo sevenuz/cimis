@@ -6,12 +6,46 @@
 
 	export let path: string;
 
+	const MAX_CACHED_PAGE_SIZE = 200_000; // bytes, skip caching oversized page content (e.g. pasted-in images)
+
+	function cache_key(p: string): string {
+		return `page_cache_${$iso}_${p}`;
+	}
+
+	function load_cached_page(p: string): Page | null {
+		try {
+			const raw = localStorage.getItem(cache_key(p));
+			return raw ? (JSON.parse(raw) as Page) : null;
+		} catch {
+			return null; // private browsing / storage disabled
+		}
+	}
+
+	function save_cached_page(p: string, page: Page) {
+		try {
+			const serialized = JSON.stringify(page);
+			if (serialized.length > MAX_CACHED_PAGE_SIZE) return;
+			localStorage.setItem(cache_key(p), serialized);
+		} catch {
+			// quota exceeded / private browsing, offline cache is best-effort
+		}
+	}
+
 	async function load_page(p: string) {
 		return pb
 			.collection("page")
-			.getFirstListItem(
+			.getFirstListItem<Page>(
 				`path="${p}" && iso="${$iso}" && link!="deactivated"`
-		)
+			)
+			.then((page) => {
+				save_cached_page(p, page);
+				return page;
+			})
+			.catch((err) => {
+				const cached = load_cached_page(p);
+				if (cached) return cached;
+				throw err;
+			});
 	}
 
 	let page: Page | null;
