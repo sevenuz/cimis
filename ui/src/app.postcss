@@ -122,6 +122,43 @@ details summary {
 	margin: 0 auto;
 }
 
+.form-input {
+	@apply bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5;
+}
+
+select.form-input {
+	padding-right: 2rem;
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23374151'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 0.6rem center;
+	background-size: 1.1em;
+}
+
+.form-grid {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 0.6rem 1rem;
+	align-items: center;
+	text-align: left;
+}
+.form-grid label {
+	white-space: nowrap;
+}
+
+.nav-link-button {
+	display: inline-block;
+	border-radius: 999px;
+	padding: 0.6em 1.2em;
+	background-color: #1a1a1a;
+	color: white;
+	margin: 3px;
+}
+.nav-link-button:hover {
+	color: white;
+	border-color: #646cff;
+}
+
 #app {
   max-width: 1280px;
   margin: 0 auto;

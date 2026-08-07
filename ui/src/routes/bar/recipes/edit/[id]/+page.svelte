@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
+	import { page } from "$app/stores";
 	import { onMount } from "svelte";
 	import { iso, l, lang } from "$lib/stores/lang";
 	import { pb } from "$lib/util";
 	import type { User } from "$lib/types/User";
 	import { products, load_catalog } from "$lib/stores/bar";
+	import ProductEditor from "$lib/components/ProductEditor.svelte";
 
 	let user: User | null = null;
 
@@ -16,26 +18,17 @@
 		}
 		await load_catalog(true);
 	});
+
+	$: product = $products.find((p) => p.id === $page.params.id) ?? null;
 </script>
 
 <div class="content text-center">
-	<a class="nav-link-button" href="/bar">&larr; {l($lang, $iso, "ui_back")}</a>
-	<h1>{l($lang, $iso, "ui_recipes")}</h1>
+	<a class="nav-link-button" href="/bar/recipes">&larr; {l($lang, $iso, "ui_recipes")}</a>
+	<h1>{l($lang, $iso, "ui_edit")}</h1>
 
-	<div style="max-width:700px; margin:auto; text-align:left;">
-		<a class="rounded-full" href="/bar/recipes/new">+ {l($lang, $iso, "ui_new")}</a>
-
-		<h2>{l($lang, $iso, "ui_products")}</h2>
-		<ul>
-			{#each $products as p}
-				<li>
-					<a class="rounded-full" href="/bar/recipes/edit/{p.id}">
-						{l($lang, $iso, p.expand.name.name)} ({p.slug})
-					</a>
-				</li>
-			{/each}
-		</ul>
-	</div>
+	{#if product}
+		<ProductEditor {product} />
+	{/if}
 </div>
 
 <svelte:head>

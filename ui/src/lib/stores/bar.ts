@@ -142,7 +142,6 @@ export function edit_selection(product: Product, n: number) {
 	} else {
 		p = {
 			product: product.id,
-			bar: get(current_bar_id),
 			amount: n,
 			price: product.price,
 			free: false,
@@ -168,7 +167,6 @@ export function add_wheel_win(product: Product) {
 		...get(new_servings),
 		{
 			product: product.id,
-			bar: get(current_bar_id),
 			amount: 1,
 			price: 0,
 			free: true,
@@ -176,10 +174,6 @@ export function add_wheel_win(product: Product) {
 			expand: { product },
 		} as Serving,
 	]);
-}
-
-export function requires_deposit_warning(selection: Serving[]): boolean {
-	return selection.some((s) => get_product_by_selection(s)?.requires_deposit);
 }
 
 export function queue_order(o: Order, servings: Serving[], bar_id?: string) {
@@ -194,7 +188,6 @@ export function queue_order(o: Order, servings: Serving[], bar_id?: string) {
 		is_bookout: !!o.is_bookout,
 		servings: servings.map((s) => ({
 			product: s.product,
-			bar: s.bar || bar,
 			amount: s.amount,
 			price: s.price,
 			free: s.free,

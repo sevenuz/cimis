@@ -93,3 +93,43 @@ export function local_cache_set<T>(key: string, value: T) {
 		// quota exceeded / private browsing, best-effort only
 	}
 }
+
+// @return string containing the hex representation of the given color
+// https://stackoverflow.com/questions/1573053/javascript-function-to-convert-color-names-to-hex-codes
+function standardize_color(color: string): string {
+	var ctx = document.createElement("canvas").getContext("2d");
+	ctx.fillStyle = color;
+	return ctx.fillStyle; // hex color code
+}
+
+function fake_complementary_color(hex: string): string {
+	let r = parseInt(hex.substring(1, 3), 16);
+	let g = parseInt(hex.substring(3, 5), 16);
+	let b = parseInt(hex.substring(5), 16);
+	if (r > 100 && g > 100 && b > 100) {
+		return "black";
+	} else {
+		return "white";
+	}
+}
+
+export function get_colors(c: string): string {
+	let color = c;
+	if (color == "") {
+		color =
+			"rgb(" +
+			Math.random() * 256 +
+			"," +
+			Math.random() * 256 +
+			"," +
+			Math.random() * 256 +
+			")";
+	}
+	return (
+		"background-color: " +
+		color +
+		"; color: " +
+		fake_complementary_color(standardize_color(color)) +
+		";"
+	);
+}

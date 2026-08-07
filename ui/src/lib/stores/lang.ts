@@ -9,7 +9,10 @@ type LanguageDict = Record<string, Record<string, string>>;
 export const lang = writable({} as LanguageDict);
 export const iso = writable(config.default_language as Iso);
 
-async function load_iso(iso: Iso) {
+// exported so pages that create/update translations at runtime (e.g. the
+// recipes page) can force a refresh - l() only auto-loads an iso the first
+// time it's missing, it never notices new/changed keys after that.
+export async function load_iso(iso: Iso) {
 	lang.update(l => {
 		l[iso] = {};
 		return l;

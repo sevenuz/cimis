@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { iso, l, lang } from "$lib/stores/lang";
-	import { error_handling, pb } from "$lib/util";
+	import { error_handling, get_colors, pb } from "$lib/util";
 	import type { User } from "$lib/types/User";
 	import { ProductType } from "$lib/types/Product";
 	import type { Product } from "$lib/types/Product";
@@ -19,7 +19,6 @@
 		bars,
 		current_bar_id,
 		queue_order,
-		requires_deposit_warning,
 		add_wheel_win,
 	} from "$lib/stores/bar";
 	import { pending_orders } from "$lib/stores/bar_queue";
@@ -71,46 +70,6 @@
 		user = null;
 	}
 
-	// @return string containing the hex representation of the given color
-	// https://stackoverflow.com/questions/1573053/javascript-function-to-convert-color-names-to-hex-codes
-	function standardize_color(color: string): string {
-		var ctx = document.createElement("canvas").getContext("2d");
-		ctx.fillStyle = color;
-		return ctx.fillStyle; // hex color code
-	}
-
-	function fake_complementary_color(hex: string): string {
-		let r = parseInt(hex.substring(1, 3), 16);
-		let g = parseInt(hex.substring(3, 5), 16);
-		let b = parseInt(hex.substring(5), 16);
-		if (r > 100 && g > 100 && b > 100) {
-			return "black";
-		} else {
-			return "white";
-		}
-	}
-
-	function get_colors(c: string): string {
-		let color = c;
-		if (color == "") {
-			color =
-				"rgb(" +
-				Math.random() * 256 +
-				"," +
-				Math.random() * 256 +
-				"," +
-				Math.random() * 256 +
-				")";
-		}
-		return (
-			"background-color: " +
-			color +
-			"; color: " +
-			fake_complementary_color(standardize_color(color)) +
-			";"
-		);
-	}
-
 	function on_product_click(product: Product, n: number) {
 		edit_selection(product, n);
 		if (n > 0 && product.is_wheel) {
@@ -121,6 +80,18 @@
 	function pick_wheel_win(product: Product) {
 		add_wheel_win(product);
 		show_wheel_prompt = false;
+	}
+
+	const cash_denominations = [1, 2, 5, 10, 20, 50];
+	let cash_given = 0;
+	$: change_due = cash_given - ($order.total || 0);
+
+	function add_cash(amount: number) {
+		cash_given += amount;
+	}
+
+	function reset_cash() {
+		cash_given = 0;
 	}
 
 	function fill_order(pm: PaymentMethod) {
@@ -135,6 +106,7 @@
 		$order.user = user.id;
 		$order.payment_method = pm.id;
 		$order.total = get_serving_total($new_servings, pm);
+		reset_cash();
 		show_final_step = true;
 	}
 
@@ -151,16 +123,30 @@
 </script>
 
 <div class="content text-center">
-	<h1>
-		{l($lang, $iso, "ui_bar")}
-	</h1>
+	<div class="flex justify-between items-center">
+		<div style="width: 80px;" />
+		<h1 class="flex-1">
+			{l($lang, $iso, "ui_bar")}
+		</h1>
+		<div style="width: 80px;">
+			{#if user != null}
+				<button
+					class="rounded-full"
+					on:click={logout}
+					title={l($lang, $iso, "ui_logout")}
+				>
+					{user.username}
+				</button>
+			{/if}
+		</div>
+	</div>
 	{#if user == null}
 		<input
-			class="mb-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+			class="form-input mb-2 block w-full"
 			bind:value={username_or_email}
 		/>
 		<input
-			class="mb-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+			class="form-input mb-2 block w-full"
 			bind:value={password}
 			type="password"
 		/>
@@ -168,39 +154,30 @@
 			{l($lang, $iso, "ui_login")}
 		</button>
 	{:else}
-		<h3 class="inline">
-			{l($lang, $iso, "ui_logged_in_as")}
-			<span style="color: green;">
-				{user.username}
-			</span>
-		</h3>
-		<button class="rounded-full" on:click={logout}>
-			{l($lang, $iso, "ui_logout")}
-		</button>
 		<div class="my-2">
 			{l($lang, $iso, "ui_bar_selector")}:
-			<select bind:value={$current_bar_id} class="rounded-full">
+			<select bind:value={$current_bar_id} class="form-input">
 				{#each $bars as b}
 					<option value={b.id}>{b.name}</option>
 				{/each}
 			</select>
 		</div>
+		{#if user.admin}
+			<div class="flex gap-1 justify-center">
+				<a class="nav-link-button" href="/bar/inventory">
+					{l($lang, $iso, "ui_inventory")}
+				</a>
+				<a class="nav-link-button" href="/bar/recipes">
+					{l($lang, $iso, "ui_recipes")}
+				</a>
+				<a class="nav-link-button" href="/bar/bookkeeping">
+					{l($lang, $iso, "ui_bookkeeping")}
+				</a>
+			</div>
+		{/if}
 	{/if}
 </div>
 {#if user != null}
-	{#if user.admin}
-		<div class="absolute right-0 top-0 flex gap-1">
-			<a class="rounded-full" href="/bar/inventory">
-				{l($lang, $iso, "ui_inventory")}
-			</a>
-			<a class="rounded-full" href="/bar/recipes">
-				{l($lang, $iso, "ui_recipes")}
-			</a>
-			<a class="rounded-full" href="/bar/bookkeeping">
-				{l($lang, $iso, "ui_bookkeeping")}
-			</a>
-		</div>
-	{/if}
 	<div class="md:grid grid-cols-3" style="width: 95vw;margin: auto;">
 		<div class="col-span-2">
 			<div class="grid grid-cols-4">
@@ -296,11 +273,22 @@
 				{$order.total}
 				€
 			</h2>
-			{#if requires_deposit_warning($new_servings)}
-				<p class="text-red" style="font-size: 1.4em; font-weight: bold;">
-					{l($lang, $iso, "ui_deposit_warning")}
-				</p>
-			{/if}
+			<p class="text-red" style="font-size: 1.4em; font-weight: bold;">
+				{l($lang, $iso, "ui_bar_confirmation_alert")}
+			</p>
+
+			<div style="padding-bottom:10px;">
+				{#each cash_denominations as d}
+					<button class="rounded-full" on:click={() => add_cash(d)}>{d}€</button>
+				{/each}
+				<button class="bg-white border-black rounded-full bg-yellow" on:click={reset_cash}>
+					{l($lang, $iso, "ui_reset")}
+				</button>
+				<h3>
+					{l($lang, $iso, "ui_change_due")}: {change_due.toFixed(2)}€
+				</h3>
+			</div>
+
 			<button
 				style="background-color: green; color: white;"
 				class="disabled:opacity-25 disabled:border-none rounded-full"
@@ -324,7 +312,7 @@
 		<div class="content bg-blur rounded-md h-full">
 			<h2>{l($lang, $iso, "ui_wheel_prompt")}</h2>
 			<div class="grid grid-cols-4">
-				{#each visible_products.filter((p) => !p.is_wheel) as product}
+				{#each visible_products.filter((p) => !p.is_wheel && p.type == ProductType.product) as product}
 					<button
 						style={get_colors(product.color)}
 						on:click={() => pick_wheel_win(product)}

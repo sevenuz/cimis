@@ -7,7 +7,6 @@ const FLUSH_INTERVAL_MS = 15000;
 
 export interface QueuedServing {
 	product: string;
-	bar: string;
 	amount: number;
 	price: number;
 	free: boolean;

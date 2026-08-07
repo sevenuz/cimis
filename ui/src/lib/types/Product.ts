@@ -19,7 +19,6 @@ export interface Product extends Record {
 	deactivated: boolean;
 	admin_only: boolean;
 	instructions: string;
-	requires_deposit: boolean;
 	is_wheel: boolean; // marks the one product that triggers the lucky-wheel win prompt
 	bars: string[]; // relation, which bars sell this product
 	expand: {
