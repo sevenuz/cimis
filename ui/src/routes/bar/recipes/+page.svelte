@@ -4,18 +4,24 @@
 	import { iso, l, lang } from "$lib/stores/lang";
 	import { pb } from "$lib/util";
 	import type { User } from "$lib/types/User";
-	import { products, load_catalog } from "$lib/stores/bar";
+	import { products, bars, recipe_ingredients, load_catalog } from "$lib/stores/bar";
 
 	let user: User | null = null;
 
 	onMount(async () => {
 		user = pb.authStore.model as User;
-		if (!user || !user.admin) {
+		if (!user) {
 			goto("/bar");
 			return;
 		}
-		await load_catalog(true);
+		await load_catalog(user.admin);
 	});
+
+	$: recipe_ingredients_for = (product_id: string) =>
+		$recipe_ingredients.filter((ri) => ri.product == product_id);
+
+	$: bar_names_for = (bar_ids: string[]) =>
+		bar_ids.map((id) => $bars.find((b) => b.id == id)?.name).filter(Boolean).join(", ");
 </script>
 
 <div class="content text-center">
@@ -23,18 +29,37 @@
 	<h1>{l($lang, $iso, "ui_recipes")}</h1>
 
 	<div style="max-width:700px; margin:auto; text-align:left;">
-		<a class="rounded-full" href="/bar/recipes/new">+ {l($lang, $iso, "ui_new")}</a>
+		{#if user?.admin}
+			<a class="rounded-full" href="/bar/recipes/new">+ {l($lang, $iso, "ui_new")}</a>
+		{/if}
 
 		<h2>{l($lang, $iso, "ui_products")}</h2>
-		<ul>
-			{#each $products as p}
-				<li>
-					<a class="rounded-full" href="/bar/recipes/edit/{p.id}">
-						{l($lang, $iso, p.expand.name.name)} ({p.slug})
-					</a>
-				</li>
-			{/each}
-		</ul>
+		{#each $products as p}
+			<details style="margin-bottom:8px; border-bottom: 1px solid rgb(222, 222, 222);">
+				<summary>
+					<b>{l($lang, $iso, p.expand.name.name)}</b> ({p.slug}) - {p.price}€ · {p.type}
+					{#if p.bars?.length}· {bar_names_for(p.bars)}{/if}
+					{#if p.deactivated}· {l($lang, $iso, "ui_deactivated")}{/if}
+					{#if p.admin_only}· {l($lang, $iso, "ui_admin_only")}{/if}
+					{#if p.is_wheel}· {l($lang, $iso, "ui_is_wheel")}{/if}
+				</summary>
+				<div style="padding: 10px 0;">
+					{#if p.instructions}
+						<p>{p.instructions}</p>
+					{/if}
+					<ul>
+						{#each recipe_ingredients_for(p.id) as ri}
+							<li>{ri.expand.ingredient.name}: {ri.quantity} {ri.expand.ingredient.unit}</li>
+						{/each}
+					</ul>
+					{#if user?.admin}
+						<a class="rounded-full" href="/bar/recipes/edit/{p.id}">
+							{l($lang, $iso, "ui_edit")}
+						</a>
+					{/if}
+				</div>
+			</details>
+		{/each}
 	</div>
 </div>
 

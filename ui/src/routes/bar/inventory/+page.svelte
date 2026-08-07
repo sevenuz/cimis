@@ -32,11 +32,11 @@
 
 	onMount(async () => {
 		user = pb.authStore.model as User;
-		if (!user || !user.admin) {
+		if (!user) {
 			goto("/bar");
 			return;
 		}
-		await load_catalog(true);
+		await load_catalog(user.admin);
 		events = await pb.collection("event").getFullList<Event>().catch((err) => {
 			error_handling(err);
 			return [] as Event[];
@@ -124,45 +124,47 @@
 	<a class="nav-link-button" href="/bar">&larr; {l($lang, $iso, "ui_back")}</a>
 	<h1>{l($lang, $iso, "ui_inventory")}</h1>
 
-	<div style="max-width:600px; margin:auto; text-align:left;">
-		<details>
-			<summary><h2 class="inline">{l($lang, $iso, "ui_ingredients")}</h2></summary>
-			<div class="form-grid" style="padding-top:10px;">
-				<label for="ing-name">{l($lang, $iso, "ui_name")}</label>
-				<input id="ing-name" class="form-input" bind:value={ingredient_name} />
-				<label for="ing-unit">{l($lang, $iso, "ui_unit")}</label>
-				<input id="ing-unit" class="form-input" bind:value={ingredient_unit} />
-			</div>
-			<div class="text-center" style="padding-top:10px;">
-				<button class="rounded-full" on:click={add_ingredient}>+</button>
-			</div>
-		</details>
-	</div>
-
-	{#if $active_event}
-		<div style="max-width:600px; margin:auto; text-align:left; padding-top:10px;">
+	{#if user?.admin}
+		<div style="max-width:600px; margin:auto; text-align:left;">
 			<details>
-				<summary><h2 class="inline">{l($lang, $iso, "ui_add_inventory")}</h2></summary>
+				<summary><h2 class="inline">{l($lang, $iso, "ui_ingredients")}</h2></summary>
 				<div class="form-grid" style="padding-top:10px;">
-					<label for="rec-ingredient">{l($lang, $iso, "ui_ingredients")}</label>
-					<select id="rec-ingredient" class="form-input" bind:value={new_ingredient_id}>
-						<option value="">-</option>
-						{#each $ingredients as i}
-							<option value={i.id}>{i.name} ({i.unit})</option>
-						{/each}
-					</select>
-					<label for="rec-amount">{l($lang, $iso, "ui_amount")}</label>
-					<input id="rec-amount" class="form-input" type="number" bind:value={new_amount} />
-					<label for="rec-note">{l($lang, $iso, "ui_note")}</label>
-					<input id="rec-note" class="form-input" bind:value={new_note} />
+					<label for="ing-name">{l($lang, $iso, "ui_name")}</label>
+					<input id="ing-name" class="form-input" bind:value={ingredient_name} />
+					<label for="ing-unit">{l($lang, $iso, "ui_unit")}</label>
+					<input id="ing-unit" class="form-input" bind:value={ingredient_unit} />
 				</div>
 				<div class="text-center" style="padding-top:10px;">
-					<button class="bg-white border-black rounded-full bg-yellow" on:click={add_receipt}>
-						{l($lang, $iso, "ui_save")}
-					</button>
+					<button class="rounded-full" on:click={add_ingredient}>+</button>
 				</div>
 			</details>
 		</div>
+
+		{#if $active_event}
+			<div style="max-width:600px; margin:auto; text-align:left; padding-top:10px;">
+				<details>
+					<summary><h2 class="inline">{l($lang, $iso, "ui_add_inventory")}</h2></summary>
+					<div class="form-grid" style="padding-top:10px;">
+						<label for="rec-ingredient">{l($lang, $iso, "ui_ingredients")}</label>
+						<select id="rec-ingredient" class="form-input" bind:value={new_ingredient_id}>
+							<option value="">-</option>
+							{#each $ingredients as i}
+								<option value={i.id}>{i.name} ({i.unit})</option>
+							{/each}
+						</select>
+						<label for="rec-amount">{l($lang, $iso, "ui_amount")}</label>
+						<input id="rec-amount" class="form-input" type="number" bind:value={new_amount} />
+						<label for="rec-note">{l($lang, $iso, "ui_note")}</label>
+						<input id="rec-note" class="form-input" bind:value={new_note} />
+					</div>
+					<div class="text-center" style="padding-top:10px;">
+						<button class="bg-white border-black rounded-full bg-yellow" on:click={add_receipt}>
+							{l($lang, $iso, "ui_save")}
+						</button>
+					</div>
+				</details>
+			</div>
+		{/if}
 	{/if}
 
 	<div style="padding-top:30px;">

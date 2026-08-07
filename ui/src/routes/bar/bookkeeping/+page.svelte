@@ -20,11 +20,9 @@
 
 	let orders: Order[] = [];
 	let earned = 0;
-	let earned_per_pm: Record<string, number> = {};
-	let earned_per_bar_pm: Record<string, Record<string, number>> = {};
+	let earned_per_bar: Record<string, number> = {};
 	let booked_out = 0;
-	let booked_out_per_pm: Record<string, number> = {};
-	let booked_out_per_bar_pm: Record<string, Record<string, number>> = {};
+	let booked_out_per_bar: Record<string, number> = {};
 
 	let bookout_amount = 0;
 
@@ -71,17 +69,18 @@
 			return;
 		}
 
-		orders = await pb.collection("bar_order").getFullList<Order>(undefined, { filter }).catch((err) => {
-			error_handling(err);
-			return [] as Order[];
-		});
+		orders = await pb
+			.collection("bar_order")
+			.getFullList<Order>(undefined, { filter, sort: "-created" })
+			.catch((err) => {
+				error_handling(err);
+				return [] as Order[];
+			});
 
 		earned = 0;
-		earned_per_pm = {};
-		earned_per_bar_pm = {};
+		earned_per_bar = {};
 		booked_out = 0;
-		booked_out_per_pm = {};
-		booked_out_per_bar_pm = {};
+		booked_out_per_bar = {};
 		for (const o of orders) {
 			add_to_totals(o);
 		}
@@ -94,24 +93,20 @@
 	function add_to_totals(o: Order) {
 		if (o.is_bookout) {
 			booked_out += o.total;
-			booked_out_per_pm[o.payment_method] = (booked_out_per_pm[o.payment_method] || 0) + o.total;
-			booked_out_per_bar_pm[o.bar] = booked_out_per_bar_pm[o.bar] || {};
-			booked_out_per_bar_pm[o.bar][o.payment_method] =
-				(booked_out_per_bar_pm[o.bar][o.payment_method] || 0) + o.total;
+			booked_out_per_bar[o.bar] = (booked_out_per_bar[o.bar] || 0) + o.total;
 		} else {
 			earned += o.total;
-			earned_per_pm[o.payment_method] = (earned_per_pm[o.payment_method] || 0) + o.total;
-			earned_per_bar_pm[o.bar] = earned_per_bar_pm[o.bar] || {};
-			earned_per_bar_pm[o.bar][o.payment_method] =
-				(earned_per_bar_pm[o.bar][o.payment_method] || 0) + o.total;
+			earned_per_bar[o.bar] = (earned_per_bar[o.bar] || 0) + o.total;
 		}
 	}
 
-	function expected(bar_id: string, payment_method_id: string): number {
-		return (
-			(earned_per_bar_pm[bar_id]?.[payment_method_id] || 0) -
-			(booked_out_per_bar_pm[bar_id]?.[payment_method_id] || 0)
-		);
+	function bar_name(bar_id: string): string {
+		return $bars.find((b) => b.id == bar_id)?.name || bar_id;
+	}
+
+	function pm_name(payment_method_id: string): string {
+		const pm = $payment_methods.find((p) => p.id == payment_method_id);
+		return pm ? l($lang, $iso, pm.expand.name.name) : payment_method_id;
 	}
 
 	function bookout(bar_id: string, payment_method_id: string) {
@@ -163,99 +158,65 @@
 		{/if}
 	</div>
 
-	<div style="max-height:300px;overflow:auto;">
-		<table class="text-center" style="margin:auto;">
-			<thead>
+	<div class="overflow-x-auto rounded-lg bg-gray-900/60 max-w-3xl mx-auto">
+		<table class="w-full text-sm text-left">
+			<thead class="bg-gray-700 text-gray-200 uppercase text-xs tracking-wider">
 				<tr>
-					<th>{l($lang, $iso, "ui_date")}</th>
-					<th>{l($lang, $iso, "ui_payment_method")}</th>
-					<th>{l($lang, $iso, "ui_total")}</th>
+					<th class="px-4 py-3">{l($lang, $iso, "ui_date")}</th>
+					<th class="px-4 py-3">{l($lang, $iso, "ui_bar_selector")}</th>
+					<th class="px-4 py-3">{l($lang, $iso, "ui_payment_method")}</th>
+					<th class="px-4 py-3 text-right">{l($lang, $iso, "ui_total")}</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody class="divide-y divide-gray-700">
 				{#each orders as order}
-					<tr>
-						<td>{new Date(order.created).toLocaleString("de-DE")}</td>
-						<td>
-							{l(
-								$lang,
-								$iso,
-								$payment_methods.find((pm) => pm.id == order.payment_method)?.expand.name
-									.name || ""
-							)}
+					<tr class="hover:bg-gray-800/70" class:text-red-400={order.is_bookout}>
+						<td class="px-4 py-2">{new Date(order.created).toLocaleString("de-DE")}</td>
+						<td class="px-4 py-2">{bar_name(order.bar)}</td>
+						<td class="px-4 py-2">
+							{order.is_bookout ? l($lang, $iso, "ui_bookout") : pm_name(order.payment_method)}
 						</td>
-						<td>{order.total}€</td>
+						<td class="px-4 py-2 text-right">
+							{order.is_bookout ? "-" : ""}{order.total.toFixed(2)}€
+						</td>
 					</tr>
 				{/each}
 			</tbody>
-		</table>
-	</div>
-
-	<div style="padding-top:30px;">
-		<h2>{l($lang, $iso, "ui_earned")}</h2>
-		{#each $payment_methods as pm}
-			<h3><b>{l($lang, $iso, pm.expand.name.name)}: {(earned_per_pm[pm.id] || 0).toFixed(2)}€</b></h3>
-		{/each}
-		_______________
-		<h3><b>{l($lang, $iso, "ui_total")} {earned.toFixed(2)}€</b></h3>
-	</div>
-
-	<div style="padding-top:30px;">
-		<h2>{l($lang, $iso, "ui_booked_out")}</h2>
-		{#each $payment_methods as pm}
-			<h3><b>{l($lang, $iso, pm.expand.name.name)}: {(booked_out_per_pm[pm.id] || 0).toFixed(2)}€</b></h3>
-		{/each}
-		_______________
-		<h3><b>{l($lang, $iso, "ui_total")} {booked_out.toFixed(2)}€</b></h3>
-	</div>
-
-	<div style="padding-top:30px;">
-		<h2>{l($lang, $iso, "ui_cash_per_bar")}</h2>
-		<p>{l($lang, $iso, "ui_expected_in_box")}</p>
-		<table class="text-center" style="margin:auto;">
-			<thead>
-				<tr>
-					<th>{l($lang, $iso, "ui_bar_selector")}</th>
-					{#each $payment_methods as pm}
-						<th>{l($lang, $iso, pm.expand.name.name)}</th>
-					{/each}
-				</tr>
-			</thead>
-			<tbody>
+			<tfoot>
 				{#each $bars as b}
-					<tr>
-						<td><b>{b.name}</b></td>
-						{#each $payment_methods as pm}
-							<td>{expected(b.id, pm.id).toFixed(2)}€</td>
-						{/each}
+					<tr class="border-t border-gray-600 bg-gray-800/80">
+						<td class="px-4 py-2 font-semibold" colspan="2">{b.name}</td>
+						<td class="px-4 py-2">{l($lang, $iso, "ui_earned")}</td>
+						<td class="px-4 py-2 text-right">{(earned_per_bar[b.id] || 0).toFixed(2)}€</td>
+					</tr>
+					<tr class="bg-gray-800/80">
+						<td class="px-4 py-2" colspan="2" />
+						<td class="px-4 py-2">{l($lang, $iso, "ui_booked_out")}</td>
+						<td class="px-4 py-2 text-right text-red-400">
+							-{(booked_out_per_bar[b.id] || 0).toFixed(2)}€
+						</td>
 					</tr>
 				{/each}
-			</tbody>
-		</table>
-
-		<h3 style="padding-top:10px;">{l($lang, $iso, "ui_booked_out")}</h3>
-		<table class="text-center" style="margin:auto;">
-			<thead>
-				<tr>
-					<th>{l($lang, $iso, "ui_bar_selector")}</th>
-					{#each $payment_methods as pm}
-						<th>{l($lang, $iso, pm.expand.name.name)}</th>
-					{/each}
+				<tr class="border-t-2 border-gray-500 bg-gray-700 font-bold">
+					<td class="px-4 py-3" colspan="2">{l($lang, $iso, "ui_total")}</td>
+					<td class="px-4 py-3">{l($lang, $iso, "ui_earned")}</td>
+					<td class="px-4 py-3 text-right">{earned.toFixed(2)}€</td>
 				</tr>
-			</thead>
-			<tbody>
-				{#each $bars as b}
-					<tr>
-						<td><b>{b.name}</b></td>
-						{#each $payment_methods as pm}
-							<td>{(booked_out_per_bar_pm[b.id]?.[pm.id] || 0).toFixed(2)}€</td>
-						{/each}
-					</tr>
-				{/each}
-			</tbody>
+				<tr class="bg-gray-700 font-bold">
+					<td class="px-4 py-3" colspan="2" />
+					<td class="px-4 py-3">{l($lang, $iso, "ui_booked_out")}</td>
+					<td class="px-4 py-3 text-right text-red-400">-{booked_out.toFixed(2)}€</td>
+				</tr>
+				<tr class="bg-gray-600 font-bold">
+					<td class="px-4 py-3" colspan="3">{l($lang, $iso, "ui_expected_in_box")}</td>
+					<td class="px-4 py-3 text-right">{(earned - booked_out).toFixed(2)}€</td>
+				</tr>
+			</tfoot>
 		</table>
+	</div>
 
-		<h2 style="padding-top:20px;">{l($lang, $iso, "ui_bookout")}</h2>
+	<div style="padding-top:30px;">
+		<h2>{l($lang, $iso, "ui_bookout")}</h2>
 		{#if !use_custom_range && $active_event && selected_event_id == $active_event.id}
 			<input
 				style="width: 100px;"

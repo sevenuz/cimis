@@ -162,19 +162,19 @@
 				{/each}
 			</select>
 		</div>
-		{#if user.admin}
-			<div class="flex gap-1 justify-center">
-				<a class="nav-link-button" href="/bar/inventory">
-					{l($lang, $iso, "ui_inventory")}
-				</a>
-				<a class="nav-link-button" href="/bar/recipes">
-					{l($lang, $iso, "ui_recipes")}
-				</a>
+		<div class="flex gap-1 justify-center">
+			<a class="nav-link-button" href="/bar/inventory">
+				{l($lang, $iso, "ui_inventory")}
+			</a>
+			<a class="nav-link-button" href="/bar/recipes">
+				{l($lang, $iso, "ui_recipes")}
+			</a>
+			{#if user.admin}
 				<a class="nav-link-button" href="/bar/bookkeeping">
 					{l($lang, $iso, "ui_bookkeeping")}
 				</a>
-			</div>
-		{/if}
+			{/if}
+		</div>
 	{/if}
 </div>
 {#if user != null}
@@ -284,6 +284,15 @@
 				<button class="bg-white border-black rounded-full bg-yellow" on:click={reset_cash}>
 					{l($lang, $iso, "ui_reset")}
 				</button>
+				<div style="padding-top:6px;">
+					{l($lang, $iso, "ui_cash_given")}:
+					<input
+						style="width: 100px;"
+						class="form-input"
+						type="number"
+						bind:value={cash_given}
+					/>
+				</div>
 				<h3>
 					{l($lang, $iso, "ui_change_due")}: {change_due.toFixed(2)}€
 				</h3>
