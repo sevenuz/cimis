@@ -2,7 +2,7 @@
 	import { goto } from "$app/navigation";
 	import { onMount } from "svelte";
 	import { iso, l, lang } from "$lib/stores/lang";
-	import { pb } from "$lib/util";
+	import { pb, get_colors } from "$lib/util";
 	import type { User } from "$lib/types/User";
 	import { products, bars, recipe_ingredients, load_catalog } from "$lib/stores/bar";
 
@@ -25,27 +25,27 @@
 </script>
 
 <div class="content text-center">
-	<a class="nav-link-button" href="/bar">&larr; {l($lang, $iso, "ui_back")}</a>
+	<a class="nav-link-button" href="/bar">{l($lang, $iso, "ui_back")}</a>
 	<h1>{l($lang, $iso, "ui_recipes")}</h1>
 
 	<div style="max-width:700px; margin:auto; text-align:left;">
 		{#if user?.admin}
-			<a class="rounded-full" href="/bar/recipes/new">+ {l($lang, $iso, "ui_new")}</a>
+			<a class="nav-link-button" href="/bar/recipes/new">+ {l($lang, $iso, "ui_new")}</a>
 		{/if}
 
 		<h2>{l($lang, $iso, "ui_products")}</h2>
 		{#each $products as p}
-			<details style="margin-bottom:8px; border-bottom: 1px solid rgb(222, 222, 222);">
+			<details style="border-bottom: 1px solid rgb(222, 222, 222);">
 				<summary>
-					<b>{l($lang, $iso, p.expand.name.name)}</b> ({p.slug}) - {p.price}€ · {p.type}
+					<b style={get_colors(p.color) + ";border-radius:2px;"}>{l($lang, $iso, p.expand.name.name)}</b> ({p.slug}) - <span class="text-white">{p.price}€</span> · {p.type}
 					{#if p.bars?.length}· {bar_names_for(p.bars)}{/if}
 					{#if p.deactivated}· {l($lang, $iso, "ui_deactivated")}{/if}
 					{#if p.admin_only}· {l($lang, $iso, "ui_admin_only")}{/if}
 					{#if p.is_wheel}· {l($lang, $iso, "ui_is_wheel")}{/if}
 				</summary>
-				<div style="padding: 10px 0;">
+				<div style="padding: 10px 0;" class="text-white">
 					{#if p.instructions}
-						<p>{p.instructions}</p>
+						<p style="margin-bottom:8px;">{p.instructions}</p>
 					{/if}
 					<ul>
 						{#each recipe_ingredients_for(p.id) as ri}
@@ -53,7 +53,7 @@
 						{/each}
 					</ul>
 					{#if user?.admin}
-						<a class="rounded-full" href="/bar/recipes/edit/{p.id}">
+						<a class="nav-link-button" href="/bar/recipes/edit/{p.id}">
 							{l($lang, $iso, "ui_edit")}
 						</a>
 					{/if}

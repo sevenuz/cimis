@@ -23,7 +23,7 @@
 </script>
 
 <div class="content text-center">
-	<a class="nav-link-button" href="/bar/recipes">&larr; {l($lang, $iso, "ui_recipes")}</a>
+	<a class="nav-link-button" href="/bar/recipes">{l($lang, $iso, "ui_recipes")}</a>
 	<h1>{l($lang, $iso, "ui_edit")}</h1>
 
 	{#if product}

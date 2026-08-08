@@ -121,7 +121,7 @@
 </script>
 
 <div class="content text-center">
-	<a class="nav-link-button" href="/bar">&larr; {l($lang, $iso, "ui_back")}</a>
+	<a class="nav-link-button" href="/bar">{l($lang, $iso, "ui_back")}</a>
 	<h1>{l($lang, $iso, "ui_inventory")}</h1>
 
 	{#if user?.admin}

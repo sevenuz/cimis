@@ -134,7 +134,7 @@
 </script>
 
 <div class="content text-center">
-	<a class="nav-link-button" href="/bar">&larr; {l($lang, $iso, "ui_back")}</a>
+	<a class="nav-link-button" href="/bar">{l($lang, $iso, "ui_back")}</a>
 	<h1>{l($lang, $iso, "ui_bookkeeping")}</h1>
 
 	<div style="padding-bottom:20px;">
@@ -177,7 +177,7 @@
 							{order.is_bookout ? l($lang, $iso, "ui_bookout") : pm_name(order.payment_method)}
 						</td>
 						<td class="px-4 py-2 text-right">
-							{order.is_bookout ? "-" : ""}{order.total.toFixed(2)}€
+							{order.total.toFixed(2)}€
 						</td>
 					</tr>
 				{/each}
@@ -193,8 +193,13 @@
 						<td class="px-4 py-2" colspan="2" />
 						<td class="px-4 py-2">{l($lang, $iso, "ui_booked_out")}</td>
 						<td class="px-4 py-2 text-right text-red-400">
-							-{(booked_out_per_bar[b.id] || 0).toFixed(2)}€
+							{(booked_out_per_bar[b.id] || 0).toFixed(2)}€
 						</td>
+					</tr>
+					<tr class="border-gray-600 bg-gray-800/80 font-bold">
+						<td class="px-4 py-2 font-semibold" colspan="2" />
+						<td class="px-4 py-2">{l($lang, $iso, "ui_expected_in_box")}</td>
+						<td class="px-4 py-2 text-right">{(earned_per_bar[b.id] + booked_out_per_bar[b.id] || 0).toFixed(2)}€</td>
 					</tr>
 				{/each}
 				<tr class="border-t-2 border-gray-500 bg-gray-700 font-bold">
@@ -205,11 +210,11 @@
 				<tr class="bg-gray-700 font-bold">
 					<td class="px-4 py-3" colspan="2" />
 					<td class="px-4 py-3">{l($lang, $iso, "ui_booked_out")}</td>
-					<td class="px-4 py-3 text-right text-red-400">-{booked_out.toFixed(2)}€</td>
+					<td class="px-4 py-3 text-right text-red-400">{booked_out.toFixed(2)}€</td>
 				</tr>
 				<tr class="bg-gray-600 font-bold">
-					<td class="px-4 py-3" colspan="3">{l($lang, $iso, "ui_expected_in_box")}</td>
-					<td class="px-4 py-3 text-right">{(earned - booked_out).toFixed(2)}€</td>
+					<td class="px-4 py-3" colspan="3" />
+					<td class="px-4 py-3 text-right text-white">{(earned + booked_out).toFixed(2)}€</td>
 				</tr>
 			</tfoot>
 		</table>
@@ -217,7 +222,14 @@
 
 	<div style="padding-top:30px;">
 		<h2>{l($lang, $iso, "ui_bookout")}</h2>
-		{#if !use_custom_range && $active_event && selected_event_id == $active_event.id}
+		  <div style="margin-top:20px;margin-bottom:20px;" class="flex items-start gap-3 rounded-full border border-blue-200 bg-yellow-800 p-4 text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200" role="alert">
+			<svg  class="mt-0.5 h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><!--!Font Awesome Free v7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.--><path d="M320 496C342.1 496 360 513.9 360 536C360 558.1 342.1 576 320 576C297.9 576 280 558.1 280 536C280 513.9 297.9 496 320 496zM320 64C346.5 64 368 85.5 368 112C368 112.6 368 113.1 368 113.7L352 417.7C351.1 434.7 337 448 320 448C303 448 289 434.7 288 417.7L272 113.7C272 113.1 272 112.6 272 112C272 85.5 293.5 64 320 64z"/></svg>
+        <div class="flex-1">
+           <p class="font-medium">{l($lang, $iso, "ui_bookout_warning")}</p>
+        </div>
+			</div>
+
+		{#if $active_event && selected_event_id == $active_event.id}
 			<input
 				style="width: 100px;"
 				class="form-input"
