@@ -135,7 +135,9 @@
 					<input id="ing-unit" class="form-input" bind:value={ingredient_unit} />
 				</div>
 				<div class="text-center" style="padding-top:10px;">
-					<button class="rounded-full" on:click={add_ingredient}>+</button>
+					<button class="rounded-full" on:click={add_ingredient}>
+							{l($lang, $iso, "ui_save")}
+					</button>
 				</div>
 			</details>
 		</div>
@@ -158,7 +160,7 @@
 						<input id="rec-note" class="form-input" bind:value={new_note} />
 					</div>
 					<div class="text-center" style="padding-top:10px;">
-						<button class="bg-white border-black rounded-full bg-yellow" on:click={add_receipt}>
+						<button class="rounded-full" on:click={add_receipt}>
 							{l($lang, $iso, "ui_save")}
 						</button>
 					</div>

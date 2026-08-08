@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
-	import { page } from "$app/stores";
 	import { onMount } from "svelte";
 	import { iso, l, lang } from "$lib/stores/lang";
 	import { pb } from "$lib/util";
 	import type { User } from "$lib/types/User";
-	import { products, load_catalog } from "$lib/stores/bar";
+	import type { Product } from "$lib/types/Product";
+	import { load_catalog } from "$lib/stores/bar";
 	import ProductEditor from "$lib/components/ProductEditor.svelte";
 
 	let user: User | null = null;
@@ -19,18 +19,18 @@
 		await load_catalog(true);
 	});
 
-	$: product = $products.find((p) => p.id === $page.params.id) ?? null;
+	function on_saved(e: CustomEvent<Product>) {
+		goto(`/bar/products/edit/${e.detail.id}`);
+	}
 </script>
 
 <div class="content text-center">
-	<a class="nav-link-button" href="/bar/recipes">{l($lang, $iso, "ui_recipes")}</a>
-	<h1>{l($lang, $iso, "ui_edit")}</h1>
+	<a class="nav-link-button" href="/bar/products">{l($lang, $iso, "ui_products")}</a>
+	<h1>{l($lang, $iso, "ui_new")}</h1>
 
-	{#if product}
-		<ProductEditor {product} />
-	{/if}
+	<ProductEditor on:saved={on_saved} />
 </div>
 
 <svelte:head>
-	<title>{l($lang, $iso, "ui_recipes")}</title>
+	<title>{l($lang, $iso, "ui_products")}</title>
 </svelte:head>

@@ -166,8 +166,8 @@
 			<a class="nav-link-button" href="/bar/inventory">
 				{l($lang, $iso, "ui_inventory")}
 			</a>
-			<a class="nav-link-button" href="/bar/recipes">
-				{l($lang, $iso, "ui_recipes")}
+			<a class="nav-link-button" href="/bar/products">
+				{l($lang, $iso, "ui_products")}
 			</a>
 			{#if user.admin}
 				<a class="nav-link-button" href="/bar/bookkeeping">

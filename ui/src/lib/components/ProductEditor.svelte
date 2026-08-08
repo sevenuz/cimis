@@ -33,6 +33,11 @@
 	let new_ingredient_id = "";
 	let new_quantity = 0;
 
+	// Tracks which `product` PROP id the form was last loaded from - not which
+	// record was last saved. Never assign this outside this block: doing so
+	// (e.g. after a create) makes it disagree with the still-unchanged `product`
+	// prop, which retriggers this block and wipes `current` back to null via
+	// load_form(product) right after a successful save.
 	let last_loaded_id: string | null = null;
 	$: if ((product?.id ?? null) !== last_loaded_id) {
 		last_loaded_id = product?.id ?? null;
@@ -125,7 +130,6 @@
 		}
 		if (!saved) return;
 		current = saved;
-		last_loaded_id = saved.id;
 
 		// l() caches translations per iso on first load and never notices new/changed
 		// keys after that - force a refresh so the name we just saved shows up right away
@@ -175,7 +179,7 @@
 </script>
 
 <div style="max-width:700px; margin:auto; text-align:left;">
-	<h2>{current ? l($lang, $iso, "ui_edit") : l($lang, $iso, "ui_new")}</h2>
+	<h2>Product</h2>
 
 	<div class="form-grid">
 		<label for="f-slug">{l($lang, $iso, "ui_slug")}</label>
@@ -230,7 +234,7 @@
 	</div>
 
 	<div class="text-center" style="padding-top:10px;">
-		<button class="bg-white border-black rounded-full bg-yellow" on:click={save_product}>
+		<button class="rounded-full" on:click={save_product}>
 			{l($lang, $iso, "ui_save")}
 		</button>
 	</div>

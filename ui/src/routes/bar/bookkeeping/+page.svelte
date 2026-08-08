@@ -168,9 +168,9 @@
 		{/if}
 	</div>
 
-	<div class="overflow-x-auto rounded-lg bg-gray-900/60 max-w-3xl mx-auto">
+	<div class="overflow-x-auto overflow-y-auto max-h-[28rem] rounded-lg bg-gray-900/60 max-w-3xl mx-auto">
 		<table class="w-full text-sm text-left">
-			<thead class="bg-gray-700 text-gray-200 uppercase text-xs tracking-wider">
+			<thead class="sticky top-0 z-10 bg-gray-700 text-gray-200 uppercase text-xs tracking-wider">
 				<tr>
 					<th class="px-4 py-3">{l($lang, $iso, "ui_date")}</th>
 					<th class="px-4 py-3">{l($lang, $iso, "ui_bar_selector")}</th>
@@ -192,14 +192,14 @@
 					</tr>
 				{/each}
 			</tbody>
-			<tfoot>
+			<tfoot class="sticky bottom-0 z-10">
 				{#each $bars as b}
-					<tr class="border-t border-gray-600 bg-gray-800/80">
+					<tr class="border-t border-gray-600 bg-gray-800">
 						<td class="px-4 py-2 font-semibold" colspan="2">{b.name}</td>
 						<td class="px-4 py-2">{l($lang, $iso, "ui_earned")}</td>
 						<td class="px-4 py-2 text-right">{(earned_per_bar[b.id] || 0).toFixed(2)}€</td>
 					</tr>
-					<tr class="border-gray-600 bg-gray-800/80 font-bold">
+					<tr class="border-gray-600 bg-gray-800 font-bold">
 						<td class="px-4 py-2 font-semibold" colspan="2" />
 						<td class="px-4 py-2">{l($lang, $iso, "ui_expected_in_box")}</td>
 						<td class="px-4 py-2 text-right">{(box_per_bar[b.id] || 0).toFixed(2)}€</td>
