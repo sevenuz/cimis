@@ -6,6 +6,7 @@ export interface PaymentMethod extends Record {
 	fee_percentage: number;
 	fee: number;
 	color: string;
+	affects_box: boolean; // counts toward the physical cash box (e.g. cash, not card)
 	expand: {
 		name: LanguageKey
 	}

@@ -8,7 +8,7 @@ import (
 )
 
 var bookkeepingSplitTranslations = map[string][2]string{
-	"ui_earned":          {"Erwirtschaftet", "Earned"},
+	"ui_earned":          {"Erwirtschaftet (Alle Bezahlmethoden)", "Earned (all payment methods)"},
 	"ui_booked_out":      {"Ausgebucht", "Booked out"},
 	"ui_expected_in_box": {"Erwartet in der Kasse", "Expected in the box"},
 }
