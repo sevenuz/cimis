@@ -1,6 +1,6 @@
 import PocketBase from 'pocketbase';
 import config from "$lib/config";
-import type { Record as PbRecord } from "pocketbase";
+import type { RecordModel as PbRecord } from "pocketbase";
 import { NotificationType, notify } from './stores/notifications';
 
 export function isObject(obj: any) {

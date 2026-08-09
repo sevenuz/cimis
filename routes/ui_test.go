@@ -9,17 +9,17 @@ import (
 )
 
 func TestUiEndpoint(t *testing.T) {
-	setupTestApp := func() (*tests.TestApp, error) {
+	setupTestApp := func(t *testing.T) *tests.TestApp {
 		testApp, err := tests.NewTestApp("../test_pb_data")
 		if err != nil {
-			return nil, err
+			t.Fatal(err)
 		}
 		// no need to cleanup since scenario.Test() will do that for us
 		// defer testApp.Cleanup()
 
 		Register(testApp)
 
-		return testApp, nil
+		return testApp
 	}
 
 	scenarios := []tests.ApiScenario{
@@ -60,7 +60,7 @@ func TestUiEndpoint(t *testing.T) {
 			Method:          http.MethodGet,
 			Url:             "/icon.png",
 			ExpectedStatus:  200,
-			ExpectedContent: []string{ui.Icon_file},
+			ExpectedContent: []string{string(ui.Icon_file)},
 			TestAppFactory:  setupTestApp,
 		},
 		{

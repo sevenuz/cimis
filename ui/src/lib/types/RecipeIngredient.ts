@@ -1,8 +1,8 @@
-import type { Record } from "pocketbase";
+import type { RecordModel } from "pocketbase";
 import type { Product } from "./Product";
 import type { Ingredient } from "./Ingredient";
 
-export interface RecipeIngredient extends Record {
+export interface RecipeIngredient extends RecordModel {
 	product: string; // relation
 	ingredient: string; // relation
 	quantity: number;

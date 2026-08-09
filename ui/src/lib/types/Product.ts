@@ -1,4 +1,4 @@
-import type { Record } from "pocketbase";
+import type { RecordModel } from "pocketbase";
 import type { LanguageKey } from "./LanguageKey";
 import type { Bar } from "./Bar";
 
@@ -9,7 +9,7 @@ export enum ProductType {
 	deposit = "deposit"
 }
 
-export interface Product extends Record {
+export interface Product extends RecordModel {
 	slug: string;
 	name: string; // relation
 	price: number;

@@ -173,6 +173,9 @@
 				<a class="nav-link-button" href="/bar/bookkeeping">
 					{l($lang, $iso, "ui_bookkeeping")}
 				</a>
+				<a class="nav-link-button" href="/bar/stats">
+					{l($lang, $iso, "ui_stats")}
+				</a>
 			{/if}
 		</div>
 	{/if}

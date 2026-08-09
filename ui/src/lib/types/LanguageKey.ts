@@ -1,5 +1,5 @@
-import type { Record } from "pocketbase";
+import type { RecordModel } from "pocketbase";
 
-export interface LanguageKey extends Record {
+export interface LanguageKey extends RecordModel {
 	name: string;
 }

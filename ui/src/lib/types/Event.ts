@@ -1,6 +1,6 @@
-import type { Record } from "pocketbase";
+import type { RecordModel } from "pocketbase";
 
-export interface Event extends Record {
+export interface Event extends RecordModel {
 	name: string;
 	active: boolean;
 }

@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@sveltejs/kit": "^1.10.0",
-    "pocketbase": "^0.9.1"
+    "chart.js": "^4.4.4",
+    "pocketbase": "^0.21.5"
   }
 }

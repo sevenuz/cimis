@@ -1,6 +1,6 @@
-import type { Record } from "pocketbase";
+import type { RecordModel } from "pocketbase";
 
-export interface User extends Record {
+export interface User extends RecordModel {
 	username: string;
 	admin: boolean;
 }

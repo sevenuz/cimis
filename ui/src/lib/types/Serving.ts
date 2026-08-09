@@ -1,8 +1,8 @@
-import type { Record } from "pocketbase";
+import type { RecordModel } from "pocketbase";
 import type { Product, ProductType } from "./Product";
 import type { Order } from "./Order";
 
-export interface Serving extends Record {
+export interface Serving extends RecordModel {
 	order: string; // relation
 	product: string; // relation
 	amount: number;

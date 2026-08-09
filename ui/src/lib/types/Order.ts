@@ -1,10 +1,10 @@
-import type { Record } from "pocketbase";
+import type { RecordModel } from "pocketbase";
 import type { PaymentMethod } from "./PaymentMethod";
 import type { User } from "./User";
 import type { Bar } from "./Bar";
 import type { Event } from "./Event";
 
-export interface Order extends Record {
+export interface Order extends RecordModel {
 	user: string; // relation
 	payment_method: string; // relation
 	bar: string; // relation

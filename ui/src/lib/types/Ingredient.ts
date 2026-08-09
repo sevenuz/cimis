@@ -1,6 +1,6 @@
-import type { Record } from "pocketbase";
+import type { RecordModel } from "pocketbase";
 
-export interface Ingredient extends Record {
+export interface Ingredient extends RecordModel {
 	name: string;
 	unit: string;
 }

@@ -1,5 +1,5 @@
 import type { Iso } from "$lib/types/Iso";
-import type { Record } from "pocketbase";
+import type { RecordModel } from "pocketbase";
 
 export enum Addon {
 	particle = "particle",
@@ -8,7 +8,7 @@ export enum Addon {
 	external_link = "external_link"
 }
 
-export interface Page extends Record {
+export interface Page extends RecordModel {
 	path: string;
 	iso: Iso;
 	title: string;
