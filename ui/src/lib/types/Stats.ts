@@ -42,3 +42,9 @@ export interface ProductTimeStat extends RecordModel {
 	units: number;
 	revenue: number;
 }
+
+export interface IngredientConsumptionStat extends RecordModel {
+	event: string;
+	ingredient: string;
+	consumed: number;
+}

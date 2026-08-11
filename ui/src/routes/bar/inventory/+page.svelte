@@ -7,13 +7,8 @@
 	import type { Event } from "$lib/types/Event";
 	import type { Ingredient } from "$lib/types/Ingredient";
 	import type { Inventory } from "$lib/types/Inventory";
-	import type { RecipeIngredient } from "$lib/types/RecipeIngredient";
-	import {
-		ingredients,
-		recipe_ingredients,
-		active_event,
-		load_catalog,
-	} from "$lib/stores/bar";
+	import type { IngredientConsumptionStat } from "$lib/types/Stats";
+	import { ingredients, active_event, load_catalog } from "$lib/stores/bar";
 	import { NotificationType, notify } from "$lib/stores/notifications";
 
 	let user: User | null = null;
@@ -21,7 +16,17 @@
 	let events: Event[] = [];
 	let selected_event_id = "";
 
-	let remaining: { ingredient: Ingredient; amount: number; received: number }[] = [];
+	let remaining: {
+		ingredient: Ingredient;
+		amount: number;
+		received: number;
+	}[] = [];
+	let sort_mode: "name" | "empty" = "name";
+	$: sorted_remaining = [...remaining].sort((a, b) =>
+		sort_mode == "name"
+			? a.ingredient.name.localeCompare(b.ingredient.name)
+			: a.amount / a.received - b.amount / b.received,
+	);
 
 	let ingredient_name = "";
 	let ingredient_unit = "";
@@ -37,10 +42,13 @@
 			return;
 		}
 		await load_catalog(user.admin);
-		events = await pb.collection("event").getFullList<Event>().catch((err) => {
-			error_handling(err);
-			return [] as Event[];
-		});
+		events = await pb
+			.collection("event")
+			.getFullList<Event>()
+			.catch((err) => {
+				error_handling(err);
+				return [] as Event[];
+			});
 		selected_event_id = $active_event?.id || events[0]?.id || "";
 		if (selected_event_id) compute();
 	});
@@ -82,21 +90,26 @@
 	async function compute() {
 		if (!selected_event_id) return;
 
-		const receipts = await pb
-			.collection("bar_inventory")
-			.getFullList<Inventory>(undefined, { filter: `event="${selected_event_id}"` })
-			.catch((err) => {
-				error_handling(err);
-				return [] as Inventory[];
-			});
-
-		const servings = await pb
-			.collection("bar_serving")
-			.getFullList(undefined, { filter: `order.event="${selected_event_id}"` })
-			.catch((err) => {
-				error_handling(err);
-				return [] as { product: string; amount: number }[];
-			});
+		const [receipts, consumption] = await Promise.all([
+			pb
+				.collection("bar_inventory")
+				.getFullList<Inventory>(undefined, {
+					filter: `event="${selected_event_id}"`,
+				})
+				.catch((err) => {
+					error_handling(err);
+					return [] as Inventory[];
+				}),
+			pb
+				.collection("bar_stats_ingredient_consumption")
+				.getFullList<IngredientConsumptionStat>(undefined, {
+					filter: `event="${selected_event_id}"`,
+				})
+				.catch((err) => {
+					error_handling(err);
+					return [] as IngredientConsumptionStat[];
+				}),
+		]);
 
 		const received: Record<string, number> = {};
 		for (const r of receipts) {
@@ -104,12 +117,8 @@
 		}
 
 		const consumed: Record<string, number> = {};
-		for (const s of servings) {
-			for (const ri of $recipe_ingredients as RecipeIngredient[]) {
-				if (ri.product == s.product) {
-					consumed[ri.ingredient] = (consumed[ri.ingredient] || 0) + s.amount * ri.quantity;
-				}
-			}
+		for (const c of consumption) {
+			consumed[c.ingredient] = c.consumed;
 		}
 
 		remaining = $ingredients.map((i) => ({
@@ -127,35 +136,62 @@
 	{#if user?.admin}
 		<div style="max-width:600px; margin:auto; text-align:left;">
 			<details>
-				<summary><h2 class="inline">{l($lang, $iso, "ui_ingredients")}</h2></summary>
+				<summary
+					><h2 class="inline">{l($lang, $iso, "ui_ingredients")}</h2></summary
+				>
 				<div class="form-grid" style="padding-top:10px;">
 					<label for="ing-name">{l($lang, $iso, "ui_name")}</label>
-					<input id="ing-name" class="form-input" bind:value={ingredient_name} />
+					<input
+						id="ing-name"
+						class="form-input"
+						bind:value={ingredient_name}
+					/>
 					<label for="ing-unit">{l($lang, $iso, "ui_unit")}</label>
-					<input id="ing-unit" class="form-input" bind:value={ingredient_unit} />
+					<input
+						id="ing-unit"
+						class="form-input"
+						bind:value={ingredient_unit}
+					/>
 				</div>
 				<div class="text-center" style="padding-top:10px;">
 					<button class="rounded-full" on:click={add_ingredient}>
-							{l($lang, $iso, "ui_save")}
+						{l($lang, $iso, "ui_save")}
 					</button>
 				</div>
 			</details>
 		</div>
 
 		{#if $active_event}
-			<div style="max-width:600px; margin:auto; text-align:left; padding-top:10px;">
+			<div
+				style="max-width:600px; margin:auto; text-align:left; padding-top:10px;"
+			>
 				<details>
-					<summary><h2 class="inline">{l($lang, $iso, "ui_add_inventory")}</h2></summary>
+					<summary
+						><h2 class="inline">
+							{l($lang, $iso, "ui_add_inventory")}
+						</h2></summary
+					>
 					<div class="form-grid" style="padding-top:10px;">
-						<label for="rec-ingredient">{l($lang, $iso, "ui_ingredients")}</label>
-						<select id="rec-ingredient" class="form-input" bind:value={new_ingredient_id}>
+						<label for="rec-ingredient"
+							>{l($lang, $iso, "ui_ingredients")}</label
+						>
+						<select
+							id="rec-ingredient"
+							class="form-input"
+							bind:value={new_ingredient_id}
+						>
 							<option value="">-</option>
 							{#each $ingredients as i}
 								<option value={i.id}>{i.name} ({i.unit})</option>
 							{/each}
 						</select>
 						<label for="rec-amount">{l($lang, $iso, "ui_amount")}</label>
-						<input id="rec-amount" class="form-input" type="number" bind:value={new_amount} />
+						<input
+							id="rec-amount"
+							class="form-input"
+							type="number"
+							bind:value={new_amount}
+						/>
 						<label for="rec-note">{l($lang, $iso, "ui_note")}</label>
 						<input id="rec-note" class="form-input" bind:value={new_note} />
 					</div>
@@ -171,18 +207,44 @@
 
 	<div style="padding-top:30px;">
 		{l($lang, $iso, "ui_event")}:
-		<select class="form-input" bind:value={selected_event_id} on:change={compute}>
+		<select
+			class="form-input"
+			bind:value={selected_event_id}
+			on:change={compute}
+		>
 			{#each events as e}
 				<option value={e.id}>{e.name}{e.active ? " *" : ""}</option>
 			{/each}
 		</select>
 	</div>
 
+	<div style="max-width:600px;margin:auto;padding-top:10px;" class="flex gap-1">
+		<button
+			class="rounded-full"
+			class:bg-yellow={sort_mode == "name"}
+			on:click={() => (sort_mode = "name")}
+		>
+			{l($lang, $iso, "ui_sort_by_name")}
+		</button>
+		<button
+			class="rounded-full"
+			class:bg-yellow={sort_mode == "empty"}
+			on:click={() => (sort_mode = "empty")}
+		>
+			{l($lang, $iso, "ui_sort_by_empty")}
+		</button>
+	</div>
+
 	<div style="max-width:600px;margin:auto;padding-top:10px;">
-		{#each remaining as r}
+		{#each sorted_remaining as r}
 			<div class="text-left" style="margin-bottom:8px;">
-				<div>{r.ingredient.name}: {r.amount} / {r.received} {r.ingredient.unit}</div>
-				<div style="background:#3336; height:14px; border-radius:7px; overflow:hidden;">
+				<div>
+					{r.ingredient.name}: {r.amount} / {r.received}
+					{r.ingredient.unit}
+				</div>
+				<div
+					style="background:#3336; height:14px; border-radius:7px; overflow:hidden;"
+				>
 					<div
 						style="height:100%; width:{r.received > 0
 							? Math.max(0, Math.min(100, (r.amount / r.received) * 100))
